@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabase"; // Pastikan path ini benar (../lib jika file ini di folder app)
 
 export default function Home() {
   const brandName = "KERANJANGIN";
@@ -10,15 +11,53 @@ export default function Home() {
   const [showCard, setShowCard] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
 
+  // --- DATABASE STATES ---
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   useEffect(() => {
     const timer = setTimeout(() => setShowCard(true), 3800);
     return () => clearTimeout(timer);
   }, []);
 
+  // --- DATABASE LOGIC ---
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) return alert("Password tidak sama!");
+    
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName }, // Simpan nama di metadata user
+      },
+    });
+
+    if (error) alert(error.message);
+    else alert("Registrasi Berhasil! Silakan cek email kamu untuk verifikasi.");
+    setLoading(false);
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) alert(error.message);
+    else alert("Login Berhasil! Selamat datang di Keranjangin.");
+    setLoading(false);
+  };
+
   return (
     <main className="relative min-h-screen w-full bg-[#8b5cf6] flex flex-col lg:flex-row items-center justify-center p-6 lg:p-20 overflow-x-hidden font-sans gap-8 lg:gap-12">
       
-      {/* BACKGROUND FIX */}
       <div className="fixed inset-0 bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] -z-20" />
 
       {/* SECTION LOGO & BRAND */}
@@ -27,13 +66,11 @@ export default function Home() {
           animate={showCard ? { x: typeof window !== 'undefined' && window.innerWidth > 1024 ? -60 : 0 } : { x: 0 }}
           className="relative flex flex-col lg:flex-row items-center justify-center"
         >
-          {/* LOGO */}
           <motion.div
             initial={{ y: -800, opacity: 0 }}
             animate={{ 
               y: 0, 
               opacity: 1, 
-              // Di desktop geser kiri (-140), di mobile tetap di tengah (0)
               x: typeof window !== 'undefined' && window.innerWidth > 1024 ? [0, 0, -140] : 0 
             }}
             transition={{ 
@@ -54,8 +91,6 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* BRAND NAME */}
-          {/* Di mobile: relatif (di bawah logo), Di desktop: absolute (di samping logo) */}
           <div className="lg:absolute lg:left-[-20px] flex flex-row items-center justify-center whitespace-nowrap">
             {letters.map((letter, index) => (
               <motion.span
@@ -89,36 +124,54 @@ export default function Home() {
             className="w-full h-full [transform-style:preserve-3d] relative"
           >
             {/* FRONT (LOGIN) */}
-            <div className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] flex flex-col justify-between">
+            <form 
+              onSubmit={handleLogin}
+              className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] flex flex-col justify-between"
+            >
               <div>
                 <h2 className="text-3xl font-black text-gray-800 mb-2">Welcome Back!</h2>
                 <p className="text-gray-400 text-sm mb-8 italic">Login to your account</p>
                 <div className="space-y-4">
-                  <InputField label="Email Address" type="email" placeholder="email@example.com" />
-                  <InputField label="Password" type="password" placeholder="••••••••" />
-                  <button className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 hover:brightness-110 active:scale-95 transition-all shadow-lg">Sign In</button>
+                  <InputField label="Email Address" type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <InputField label="Password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 hover:brightness-110 active:scale-95 transition-all shadow-lg disabled:opacity-50"
+                  >
+                    {loading ? "Signing In..." : "Sign In"}
+                  </button>
                 </div>
               </div>
               <p className="text-center text-sm text-gray-400 mt-6 font-medium">
-                New here? <button onClick={() => setIsFlipped(true)} className="text-purple-600 font-bold hover:underline">Create Account</button>
+                New here? <button type="button" onClick={() => setIsFlipped(true)} className="text-purple-600 font-bold hover:underline">Create Account</button>
               </p>
-            </div>
+            </form>
 
             {/* BACK (SIGN UP) */}
-            <div className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-between">
+            <form 
+              onSubmit={handleRegister}
+              className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-between"
+            >
               <div>
                 <h2 className="text-3xl font-black text-gray-800 mb-2 italic">Sign Up</h2>
                 <p className="text-gray-400 text-sm mb-6">Create your account</p>
                 <div className="space-y-3">
-                  <InputField label="Full Name" type="text" placeholder="Your Name" />
-                  <InputField label="Email Address" type="email" placeholder="Email" />
-                  <InputField label="Password" type="password" placeholder="Password" />
-                  <InputField label="Confirm Password" type="password" placeholder="Confirm" />
-                  <button className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 shadow-lg">Register</button>
+                  <InputField label="Full Name" type="text" placeholder="Your Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                  <InputField label="Email Address" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <InputField label="Password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <InputField label="Confirm Password" type="password" placeholder="Confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 shadow-lg disabled:opacity-50"
+                  >
+                    {loading ? "Registering..." : "Register"}
+                  </button>
                 </div>
               </div>
-              <button onClick={() => setIsFlipped(false)} className="text-purple-600 font-bold text-sm mt-4 hover:underline">Back to Login</button>
-            </div>
+              <button type="button" onClick={() => setIsFlipped(false)} className="text-purple-600 font-bold text-sm mt-4 hover:underline">Back to Login</button>
+            </form>
           </motion.div>
         )}
       </div>
@@ -127,13 +180,25 @@ export default function Home() {
   );
 }
 
-function InputField({ label, type, placeholder }: { label: string, type: string, placeholder: string }) {
+interface InputProps {
+  label: string;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+}
+
+function InputField({ label, type, placeholder, value, onChange, required }: InputProps) {
   return (
     <div className="text-left">
       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
       <input 
         type={type} 
         placeholder={placeholder} 
+        value={value}
+        onChange={onChange}
+        required={required}
         className="w-full mt-1 p-3.5 bg-gray-50 border-2 border-transparent rounded-2xl text-gray-800 focus:bg-white focus:border-purple-400 outline-none transition-all placeholder:text-gray-300"
       />
     </div>
