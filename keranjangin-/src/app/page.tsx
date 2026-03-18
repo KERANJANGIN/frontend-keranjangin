@@ -3,9 +3,11 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { supabase } from "./lib/supabase"; // Pastikan path ini benar (../lib jika file ini di folder app)
+import { supabase } from "./lib/supabase"; // Path disesuaikan naik 1 tingkat
+import { useRouter } from "next/navigation"; // 1. Tambah import router
 
 export default function Home() {
+  const router = useRouter(); // 2. Inisialisasi router
   const brandName = "KERANJANGIN";
   const letters = Array.from(brandName);
   const [showCard, setShowCard] = useState(false);
@@ -33,7 +35,7 @@ export default function Home() {
       email,
       password,
       options: {
-        data: { full_name: fullName }, // Simpan nama di metadata user
+        data: { full_name: fullName }, 
       },
     });
 
@@ -50,8 +52,13 @@ export default function Home() {
       password,
     });
 
-    if (error) alert(error.message);
-    else alert("Login Berhasil! Selamat datang di Keranjangin.");
+    if (error) {
+      alert(error.message);
+    } else {
+      // 3. Logic Redirect setelah sukses
+      alert("Login Berhasil! Selamat datang di Keranjangin.");
+      router.push("/main"); 
+    }
     setLoading(false);
   };
 
@@ -129,7 +136,7 @@ export default function Home() {
               className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] flex flex-col justify-between"
             >
               <div>
-                <h2 className="text-3xl font-black text-gray-800 mb-2">Welcome Back!</h2>
+                <h2 className="text-3xl font-black text-gray-800 mb-2 font-sans italic">Welcome Back!</h2>
                 <p className="text-gray-400 text-sm mb-8 italic">Login to your account</p>
                 <div className="space-y-4">
                   <InputField label="Email Address" type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
