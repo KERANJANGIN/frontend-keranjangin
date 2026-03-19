@@ -5,11 +5,17 @@ import { supabase } from "../lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MainPage() {
   const [user, setUser] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    npm: "", shopName: "", address: "", postalCode: "", bankName: "", accountNumber: ""
+  });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -20,183 +26,160 @@ export default function MainPage() {
     checkUser();
   }, [router]);
 
-  if (!user) return <div className="min-h-screen bg-[#0f0f1b] flex items-center justify-center text-white italic">Memuat Keranjangin...</div>;
+  const handleRegisterSeller = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const npmPattern = /^(20|21|22|23|24|25|26)\d+$/;
+    if (!npmPattern.test(formData.npm)) {
+      alert("NPM tidak valid! Harus angkatan 20-26.");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from('users').update({
+        isSeller: true,          
+        npm: formData.npm,
+        shopName: formData.shopName,        
+        shopAddress: formData.address,      
+        postalCode: formData.postalCode,    
+        bankName: formData.bankName,        
+        accountNumber: formData.accountNumber 
+      }).eq('email', user.email);
+
+    if (error) alert("Gagal: " + error.message);
+    else {
+      alert("Selamat! Kamu resmi jadi Seller 🏪");
+      setIsModalOpen(false);
+    }
+    setLoading(false);
+  };
+
+  if (!user) return <div className="min-h-screen bg-[#0f0f1b] flex items-center justify-center text-white italic">Loading...</div>;
 
   return (
     <main className="min-h-screen bg-[#0f0f1b] text-white font-sans overflow-x-hidden">
       
-      {/* NAVBAR RESPONSIVE */}
-      <nav className="sticky top-0 z-50 bg-[#1a1a2e]/90 backdrop-blur-xl border-b border-white/10 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 md:gap-6">
-          
-          <div className="bg-white p-1.5 rounded-full w-9 h-9 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-            <Image src="/LOGO.jpeg" alt="Logo" width={24} height={24} className="rounded-sm" />
-          </div>
-
-          {/* Search Bar */}
-          <div className="flex-1 relative group">
-            <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-gray-400">
-              <span className="hidden sm:inline-block border-r border-gray-600 pr-2 text-[10px] font-bold uppercase">Categories</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input 
-              type="text" 
-              placeholder="Search With CTRL + K" 
-              className="w-full bg-[#252545] border border-white/5 rounded-full py-2 pl-10 sm:pl-32 pr-4 text-xs md:text-sm outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="hidden lg:flex flex-col items-end mr-2">
-                <span className="text-[9px] text-gray-500 uppercase leading-none mb-1">Saldo Anda</span>
-                <span className="text-xs font-bold text-white tracking-tight">RP 2.000.000</span>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4 text-gray-300">
-              
-              {/* ANIMASI KERANJANG HOVER */}
-              <Link href="/cart">
-                <motion.button 
-                  whileHover={{ scale: 1.2, rotate: -10 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="relative p-2 hover:text-purple-400 transition-colors cursor-pointer group"
-                >
-                  <span className="text-xl md:text-2xl block">🛒</span>
-                  {/* Efek Glow */}
-                  <span className="absolute inset-0 bg-purple-500/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                  {/* Badge */}
-                  <span className="absolute top-1 right-1 bg-red-500 text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-[#1a1a2e]">
-                    3
-                  </span>
-                </motion.button>
-              </Link>
-
-              <button className="hover:text-purple-400 transition-colors p-2 text-xl">🔔</button>
-              
-              {/* PROFILE CIRCLE */}
-              <Link href="/profile">
-                <motion.div 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-8 h-8 md:w-9 md:h-9 rounded-full border-2 border-purple-500/50 overflow-hidden bg-gray-700 cursor-pointer shadow-lg shadow-purple-500/10"
-                >
-                  <Image src="/LOGO.jpeg" alt="User" width={36} height={36} />
-                </motion.div>
-              </Link>
-            </div>
-          </div>
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-[#1a1a2e]/90 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Image src="/LOGO.jpeg" alt="Logo" width={35} height={35} className="rounded-full shadow-lg" />
+          <button onClick={() => setIsModalOpen(true)} className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all">
+            🚀 Jadi Seller
+          </button>
+        </div>
+        <div className="flex items-center gap-5">
+          <Link href="/cart" className="text-xl">🛒</Link>
+          <Link href="/profile" className="w-8 h-8 rounded-full border-2 border-purple-500 overflow-hidden">
+             <Image src="/LOGO.jpeg" alt="User" width={32} height={32} />
+          </Link>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 mt-6 space-y-8 md:space-y-12">
+      <div className="max-w-7xl mx-auto px-6 mt-8 space-y-16">
         
-        {/* BANNER / COUPON */}
-        <section className="w-full aspect-[21/9] md:aspect-auto md:h-64 bg-[#d1d5db] rounded-2xl flex items-center justify-center text-gray-400 text-xl md:text-3xl font-black uppercase tracking-[0.2em] relative overflow-hidden shadow-xl">
-           <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/20 via-transparent to-blue-600/10"></div>
-           <span className="relative z-10 drop-shadow-md italic">coupon</span>
+        {/* HERO BANNER */}
+        <section className="w-full h-44 md:h-72 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900 rounded-[40px] flex items-center justify-center relative overflow-hidden shadow-2xl border border-white/10">
+           <div className="text-center z-10 px-6">
+              <h2 className="text-3xl md:text-6xl font-black italic tracking-tighter uppercase leading-none">Flash Sale 50%</h2>
+              <p className="text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase mt-3 text-purple-300">Marketplace Mahasiswa Terbesar</p>
+           </div>
+           <div className="absolute -bottom-10 -right-10 opacity-10 text-[150px] font-black italic uppercase select-none">SALE</div>
         </section>
 
-        {/* KATEGORI - Swipeable on Mobile */}
+        {/* CATEGORIES */}
         <section>
-          <div className="flex justify-between items-end mb-4 md:mb-6">
-            <h2 className="text-lg md:text-xl font-bold italic tracking-tight border-l-4 border-purple-500 pl-3 uppercase">Kategori</h2>
-            <button className="text-[10px] text-purple-400 font-bold uppercase tracking-widest hover:underline">See All</button>
+          <h2 className="text-xs font-black uppercase tracking-[0.3em] text-gray-500 mb-6">Top Categories</h2>
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+            {['Electronics', 'Fashion', 'Books', 'Food', 'Stationery', 'Services'].map((cat) => (
+              <div key={cat} className="flex-shrink-0 bg-[#1a1a2e] border border-white/5 px-8 py-4 rounded-2xl hover:border-purple-500 transition-colors cursor-pointer">
+                <span className="text-[10px] font-black uppercase italic tracking-widest">{cat}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scrollbar-hide">
-            {[1, 2, 3, 4].map((i) => (
-              <motion.div 
-                whileHover={{ y: -5 }}
-                key={i} 
-                className="min-w-[140px] md:min-w-0 h-28 md:h-32 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-center text-[10px] text-gray-500 font-black uppercase flex-shrink-0 cursor-pointer shadow-lg"
-              >
-                Category {i}
+        </section>
+
+        {/* FEATURED BRANDS */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           {[1,2,3,4].map((b) => (
+             <div key={b} className="h-20 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-center grayscale hover:grayscale-0 transition-all cursor-pointer">
+                <p className="text-[10px] font-black italic opacity-40 uppercase">Featured Brand</p>
+             </div>
+           ))}
+        </section>
+
+        {/* PRODUCT GRID */}
+        <section>
+          <div className="flex justify-between items-end mb-8">
+            <h2 className="text-xl font-black italic border-l-4 border-purple-500 pl-4 uppercase tracking-tight">New Arrivals</h2>
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">See All Items</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+              <motion.div key={item} whileHover={{ y: -5 }} className="bg-[#1a1a2e] rounded-[30px] border border-white/5 overflow-hidden group shadow-xl">
+                <div className="aspect-square bg-[#0f0f1b] relative overflow-hidden">
+                   <div className="absolute top-3 left-3 z-10 bg-red-600 text-[8px] font-black px-2 py-1 rounded-full uppercase italic">Hot</div>
+                   <div className="w-full h-full flex items-center justify-center text-gray-800 font-black italic text-xs">NO IMAGE</div>
+                </div>
+                <div className="p-5">
+                  <h3 className="text-[9px] font-bold uppercase text-purple-500 tracking-widest">Mahasiswa Pro</h3>
+                  <p className="text-sm font-black italic uppercase mt-1 leading-tight">Product Name {item}</p>
+                  <div className="flex justify-between items-center mt-4">
+                    <p className="text-white font-black text-xs">Rp 125.000</p>
+                    <button className="bg-white text-black p-2 rounded-full text-xs hover:bg-purple-500 hover:text-white transition-colors">🛒</button>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* BEST SELLER */}
-        <section>
-          <div className="flex justify-between items-end mb-4 md:mb-6">
-            <h2 className="text-lg md:text-xl font-bold italic tracking-tight border-l-4 border-purple-500 pl-3 uppercase">Best Seller</h2>
-            <button className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">All Best Seller</button>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <motion.div whileHover={{ y: -8 }} key={i} className="group cursor-pointer">
-                <div className="aspect-square rounded-3xl bg-white/5 border border-white/5 group-hover:border-purple-500/50 transition-all overflow-hidden flex items-center justify-center text-gray-700 font-bold text-xs shadow-2xl relative">
-                  Product {i}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                </div>
-                <div className="mt-3 px-1">
-                   <h3 className="text-[10px] md:text-xs font-bold truncate uppercase tracking-tighter text-gray-200">Nama Produk Keren {i}</h3>
-                   <p className="text-[#8b5cf6] text-[10px] md:text-xs font-black mt-1 uppercase italic">Rp 150.000</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* FEATURED BRAND */}
-        <section className="bg-gradient-to-br from-[#1a1a2e] to-[#252545] p-6 md:p-10 rounded-[40px] border border-white/5 shadow-2xl relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg md:text-xl font-bold tracking-tight italic uppercase">Featured Brand</h2>
-              <button className="text-[10px] bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full uppercase font-bold border border-purple-500/50 hover:bg-purple-600 transition-colors">Explore</button>
+        {/* FOOTER */}
+        <footer className="pt-20 pb-10 border-t border-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-center md:text-left">
+            <div className="space-y-4">
+              <Image src="/LOGO.jpeg" alt="Logo" width={40} height={40} className="rounded-full mx-auto md:mx-0 grayscale" />
+              <p className="text-[10px] text-gray-500 uppercase leading-relaxed font-bold tracking-widest">Platform jual beli mahasiswa terbaik. Belanja aman, jualan nyaman.</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-20 md:h-28 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-gray-500 uppercase hover:text-white transition-all cursor-pointer hover:bg-white/10">Brand {i}</div>
-              ))}
+            <div className="flex flex-col gap-2">
+               <h4 className="text-[10px] font-black uppercase tracking-widest mb-2">Navigation</h4>
+               <Link href="#" className="text-[10px] text-gray-500 hover:text-white uppercase font-bold">Home</Link>
+               <Link href="#" className="text-[10px] text-gray-500 hover:text-white uppercase font-bold">Search</Link>
+               <Link href="#" className="text-[10px] text-gray-500 hover:text-white uppercase font-bold">Categories</Link>
+            </div>
+            <div className="flex flex-col gap-2">
+               <h4 className="text-[10px] font-black uppercase tracking-widest mb-2">Help Center</h4>
+               <Link href="#" className="text-[10px] text-gray-500 hover:text-white uppercase font-bold">Support</Link>
+               <Link href="#" className="text-[10px] text-gray-500 hover:text-white uppercase font-bold">Terms</Link>
             </div>
           </div>
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-600/10 blur-[80px] rounded-full"></div>
-        </section>
-
+          <p className="mt-20 text-center text-[8px] font-black text-gray-600 uppercase tracking-[0.8em]">© 2026 Keranjangin Ecosystem - All Rights Reserved</p>
+        </footer>
       </div>
 
-      {/* FOOTER */}
-      <footer className="mt-24 bg-[#0a0a14] py-16 px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-3">
-               <Image src="/LOGO.jpeg" alt="Logo" width={40} height={40} className="rounded-xl shadow-lg" />
-               <span className="font-black tracking-tighter text-2xl uppercase italic">KERANJANGIN</span>
-            </div>
-            <p className="text-[10px] text-gray-500 leading-relaxed max-w-[220px] uppercase font-bold tracking-widest opacity-60">
-              Platform e-commerce masa depan yang menyediakan kebutuhan anda dengan mudah dan nyaman.
-            </p>
+      {/* MODAL SELLER */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#1a1a2e] w-full max-w-lg rounded-[40px] border border-white/10 p-10 relative z-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+              <h2 className="text-2xl font-black italic uppercase mb-2 tracking-tighter">Buka Toko</h2>
+              <form onSubmit={handleRegisterSeller} className="space-y-4">
+                <input required placeholder="NPM (Angkatan 20-26)" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-xs outline-none focus:border-purple-500" onChange={(e) => setFormData({...formData, npm: e.target.value})} />
+                <input required placeholder="Nama Toko" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-xs outline-none focus:border-purple-500" onChange={(e) => setFormData({...formData, shopName: e.target.value})} />
+                <textarea required placeholder="Alamat Toko" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-xs outline-none focus:border-purple-500 h-20 resize-none" onChange={(e) => setFormData({...formData, address: e.target.value})} />
+                <div className="grid grid-cols-2 gap-4">
+                  <input required placeholder="Kode Pos" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-xs outline-none focus:border-purple-500" onChange={(e) => setFormData({...formData, postalCode: e.target.value})} />
+                  <input required placeholder="Nama Bank" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-xs outline-none focus:border-purple-500" onChange={(e) => setFormData({...formData, bankName: e.target.value})} />
+                </div>
+                <input required placeholder="Nomor Rekening" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-xs outline-none focus:border-purple-500" onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} />
+                <button disabled={loading} type="submit" className="w-full bg-purple-600 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-purple-500 transition-all">
+                  {loading ? "Sinkronisasi..." : "Konfirmasi & Buka Toko"}
+                </button>
+              </form>
+            </motion.div>
           </div>
-          
-          <div className="space-y-6">
-            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] italic">Payments</h4>
-            <div className="flex flex-wrap justify-center md:justify-start gap-3 opacity-30 grayscale">
-               {[1,2,3,4].map(i => <div key={i} className="w-12 h-8 bg-white/20 rounded-lg"></div>)}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] italic">Help Center</h4>
-            <ul className="text-[10px] text-gray-500 space-y-3 uppercase font-bold tracking-widest">
-              <li className="hover:text-purple-400 cursor-pointer transition-colors">Customer Service</li>
-              <li className="hover:text-purple-400 cursor-pointer transition-colors">Bantuan 24 Jam</li>
-              <li className="hover:text-purple-400 cursor-pointer transition-colors">Syarat & Ketentuan</li>
-            </ul>
-          </div>
-
-          <div className="text-[10px] text-gray-500 flex flex-col items-center md:items-end justify-between font-bold uppercase tracking-[0.2em]">
-             <div className="flex gap-6 mb-8 md:mb-0">
-               <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
-               <span className="hover:text-white cursor-pointer transition-colors">Contact Us</span>
-             </div>
-             <div className="text-right">
-                <p className="opacity-40">© 2026 Keranjangin Platform</p>
-                <p className="text-[8px] text-purple-500/50 mt-1">Version 2.0.4 - Stable</p>
-             </div>
-          </div>
-        </div>
-      </footer>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
