@@ -3,17 +3,16 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { supabase } from "./lib/supabase"; // Path disesuaikan naik 1 tingkat
-import { useRouter } from "next/navigation"; // 1. Tambah import router
+import { supabase } from "./lib/supabase"; 
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const router = useRouter(); // 2. Inisialisasi router
+  const router = useRouter();
   const brandName = "KERANJANGIN";
   const letters = Array.from(brandName);
   const [showCard, setShowCard] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // --- DATABASE STATES ---
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,13 +24,15 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  // --- DATABASE LOGIC ---
+  // --- LOGIKA REGISTER (DIPERBAIKI) ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) return alert("Password tidak sama!");
     
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
+
+    // 1. Daftarkan User ke Auth Supabase
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -39,24 +40,48 @@ export default function Home() {
       },
     });
 
-    if (error) alert(error.message);
-    else alert("Registrasi Berhasil! Silakan cek email kamu untuk verifikasi.");
+    if (authError) {
+      alert("Gagal Auth: " + authError.message);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Jika Berhasil, Langsung Masukkan ke Table Public.Users
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('users') 
+        .insert([
+          { 
+            id: authData.user.id, // Ambil UUID unik dari Auth
+            email: email,
+            full_name: fullName,
+            isSeller: false 
+          }
+        ]);
+
+      if (profileError) {
+        console.error("Gagal buat profil:", profileError.message);
+        alert("Akun terdaftar, tapi profil publik gagal dibuat. Coba Login.");
+      } else {
+        alert("Registrasi Berhasil! Silakan cek email atau langsung Sign In.");
+        setIsFlipped(false); // Balikkan kartu ke Login
+      }
+    }
     setLoading(false);
   };
 
+  // --- LOGIKA LOGIN ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      alert(error.message);
+      alert("Login Gagal: " + error.message);
     } else {
-      // 3. Logic Redirect setelah sukses
-      alert("Login Berhasil! Selamat datang di Keranjangin.");
       router.push("/main"); 
     }
     setLoading(false);
@@ -64,7 +89,6 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen w-full bg-[#8b5cf6] flex flex-col lg:flex-row items-center justify-center p-6 lg:p-20 overflow-x-hidden font-sans gap-8 lg:gap-12">
-      
       <div className="fixed inset-0 bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] -z-20" />
 
       {/* SECTION LOGO & BRAND */}
@@ -87,14 +111,7 @@ export default function Home() {
             className="z-50 flex-shrink-0 mb-4 lg:mb-0"
           >
             <div className="bg-white p-4 rounded-[35px] shadow-2xl border-4 border-white/20 w-[90px] h-[90px] md:w-[110px] md:h-[110px] flex items-center justify-center">
-              <Image 
-                src="/LOGO.jpeg" 
-                alt="Logo" 
-                width={80} 
-                height={80} 
-                className="object-contain rounded-2xl" 
-                priority
-              />
+              <Image src="/LOGO.jpeg" alt="Logo" width={80} height={80} className="object-contain rounded-2xl" priority />
             </div>
           </motion.div>
 
@@ -114,7 +131,7 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* SECTION KANAN: CARD */}
+      {/* SECTION KANAN: CARD (LOGIN/REGISTER) */}
       <div className="w-full max-w-[450px] min-h-[550px] lg:h-[650px] relative [perspective:1000px] z-30 mb-10 lg:mb-0">
         {showCard && (
           <motion.div
@@ -142,8 +159,7 @@ export default function Home() {
                   <InputField label="Email Address" type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   <InputField label="Password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <button 
-                    type="submit"
-                    disabled={loading}
+                    type="submit" disabled={loading}
                     className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 hover:brightness-110 active:scale-95 transition-all shadow-lg disabled:opacity-50"
                   >
                     {loading ? "Signing In..." : "Sign In"}
@@ -169,8 +185,7 @@ export default function Home() {
                   <InputField label="Password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <InputField label="Confirm Password" type="password" placeholder="Confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
                   <button 
-                    type="submit"
-                    disabled={loading}
+                    type="submit" disabled={loading}
                     className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 shadow-lg disabled:opacity-50"
                   >
                     {loading ? "Registering..." : "Register"}
@@ -182,11 +197,11 @@ export default function Home() {
           </motion.div>
         )}
       </div>
-
     </main>
   );
 }
 
+// ... Sisanya tetap (InputField interface & component)
 interface InputProps {
   label: string;
   type: string;
@@ -201,11 +216,7 @@ function InputField({ label, type, placeholder, value, onChange, required }: Inp
     <div className="text-left">
       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
       <input 
-        type={type} 
-        placeholder={placeholder} 
-        value={value}
-        onChange={onChange}
-        required={required}
+        type={type} placeholder={placeholder} value={value} onChange={onChange} required={required}
         className="w-full mt-1 p-3.5 bg-gray-50 border-2 border-transparent rounded-2xl text-gray-800 focus:bg-white focus:border-purple-400 outline-none transition-all placeholder:text-gray-300"
       />
     </div>
