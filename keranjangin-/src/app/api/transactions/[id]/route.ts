@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/app/lib/supabase';
 
 // ────────────────────────────────────────────────────
 // Helper to extract ID from params
@@ -12,10 +12,10 @@ type Params = { id: string };
 // ────────────────────────────────────────────────────
 export async function GET(
   request: Request,
-  { params }: { params: Params }
+  { params }: { params: Promise<Params> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { data: tx, error } = await supabase
       .from('transactions')

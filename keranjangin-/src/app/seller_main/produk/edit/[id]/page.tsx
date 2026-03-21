@@ -32,6 +32,13 @@ export default function EditProdukPage() {
     const [productCode, setProductCode] = useState("");
     const [imgPath, setImgPath] = useState("");
 
+    const [weight, setWeight] = useState<string | number>("");
+    const [panjang, setPanjang] = useState<string | number>("");
+    const [lebar, setLebar] = useState<string | number>("");
+    const [tinggi, setTinggi] = useState<string | number>("");
+    const [minQuantity, setMinQuantity] = useState(1);
+    const [productStatus, setProductStatus] = useState("live");
+
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -51,6 +58,14 @@ export default function EditProdukPage() {
                     setStock(product.stock || 0);
                     setProductCode(product.product_code || "");
                     setImgPath(product.img_path || "");
+                    setWeight(product.weight || "");
+                    if (product.size) {
+                        setPanjang(product.size.panjang || "");
+                        setLebar(product.size.lebar || "");
+                        setTinggi(product.size.tinggi || "");
+                    }
+                    setMinQuantity(product.min_quantity || 1);
+                    setProductStatus(product.product_status || "live");
                 } catch (error) {
                     alert("Ups! Produk tidak ditemukan atau terjadi kesalahan.");
                     router.push("/seller_main/produk");
@@ -111,7 +126,15 @@ export default function EditProdukPage() {
                     description,
                     price: Number(price),
                     stock: Number(stock),
-                    img_path: imgPath
+                    img_path: imgPath,
+                    weight: Number(weight) || 0,
+                    size: {
+                        panjang: Number(panjang) || 0,
+                        lebar: Number(lebar) || 0,
+                        tinggi: Number(tinggi) || 0
+                    },
+                    min_quantity: Number(minQuantity) || 1,
+                    product_status: productStatus
                 })
             });
             if (res.ok) {
@@ -331,6 +354,59 @@ export default function EditProdukPage() {
                                     onChange={(e) => setStock(Number(e.target.value))}
                                     className={`w-full px-4 py-3 bg-slate-50 border ${stock === 0 ? 'border-red-300 focus:ring-red-100' : 'border-slate-200 focus:ring-primary/20'} rounded-lg text-slate-800 text-sm focus:border-primary focus:bg-white outline-none transition-all`}
                                 />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Bagian Pengiriman & Status */}
+                    <section className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 mb-8">
+                        <div className="mb-8">
+                            <h3 className="font-bold text-xl text-slate-800">Pengiriman & Lainnya</h3>
+                            <p className="text-sm text-slate-400 mt-1">Atur berat barang, dimensi kiriman paket, serta ubah limit order dan status dari produk yang aktif.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-slate-700">Berat (Gram) <span className="text-red-500">*</span></label>
+                                <input
+                                    type="number"
+                                    value={weight}
+                                    onChange={(e) => setWeight(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-slate-700">Dimensi (P x L x T cm)</label>
+                                <div className="flex gap-2">
+                                    <input type="number" placeholder="P" value={panjang} onChange={(e) => setPanjang(e.target.value)} className="w-1/3 px-3 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-center transition-all" />
+                                    <input type="number" placeholder="L" value={lebar} onChange={(e) => setLebar(e.target.value)} className="w-1/3 px-3 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-center transition-all" />
+                                    <input type="number" placeholder="T" value={tinggi} onChange={(e) => setTinggi(e.target.value)} className="w-1/3 px-3 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-center transition-all" />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-slate-700">Minimum Pembelian</label>
+                                <input
+                                    type="number"
+                                    value={minQuantity}
+                                    onChange={(e) => setMinQuantity(Number(e.target.value))}
+                                    min="1"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-slate-700">Status Visibilitas</label>
+                                <select 
+                                    value={productStatus} 
+                                    onChange={(e) => setProductStatus(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white outline-none appearance-none cursor-pointer transition-all"
+                                >
+                                    <option value="live">Live (Ditampilkan Publik)</option>
+                                    <option value="not_shown">Not Shown (Disembunyikan Publik)</option>
+                                    <option value="action_needed" disabled>Perlu Tindakan (Sistem Restricted)</option>
+                                </select>
                             </div>
                         </div>
                     </section>

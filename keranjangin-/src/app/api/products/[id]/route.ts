@@ -12,10 +12,10 @@ type Params = { id: string };
 // ────────────────────────────────────────────────────
 export async function GET(
   request: Request,
-  { params }: { params: Params }
+  { params }: { params: Promise<Params> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { data: product, error } = await supabase
       .from('products')
@@ -47,10 +47,10 @@ export async function GET(
 // ────────────────────────────────────────────────────
 export async function PUT(
   request: Request,
-  { params }: { params: Params }
+  { params }: { params: Promise<Params> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
     // Extract valid fields you want to allow updating
@@ -127,10 +127,10 @@ export async function PUT(
 // ────────────────────────────────────────────────────
 export async function DELETE(
   request: Request,
-  { params }: { params: Params }
+  { params }: { params: Promise<Params> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { error } = await supabase
       .from('products')

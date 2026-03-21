@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/app/lib/supabase';
 
 // ────────────────────────────────────────────────────
 // POST /API/users
@@ -26,10 +26,11 @@ export async function POST(request: Request) {
       }
 
       let totalPrice: number = products
-        .map(product => product.price)
-        .reduce((acc, price) => acc + price, 0);
+        .map((product: any) => product.price)
+        .reduce((acc: number, price: number) => acc + price, 0);
 
       // qris/payment api implementation coming soon
+      const qrisData = null;
 
       const { data: tx, error, status } = await supabase
         .from('transactions')
