@@ -6,6 +6,14 @@ import { supabase } from "../lib/supabase";
 
 export default function Home() {
   const [userData, setUserData] = useState<any>(null);
+  const [stats, setStats] = useState({
+    waitingPayment: 0,
+    paid: 0,
+    returned: 0,
+    canceled: 0,
+    totalSales: 0,
+    totalOrders: 0
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -25,6 +33,49 @@ export default function Home() {
     };
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (userData?.id) {
+        const { data, error } = await supabase.from('transactions').select('*');
+        if (data) {
+           let waiting = 0;
+           let paid = 0;
+           let returned = 0;
+           let canceled = 0;
+           let sales = 0;
+           let orders = 0;
+
+           data.forEach((tx: any) => {
+              if (!tx.products || !Array.isArray(tx.products)) return;
+              const sellerProducts = tx.products.filter((p: any) => p.seller === userData.id);
+              if (sellerProducts.length > 0) {
+                 orders += 1;
+                 if (tx.status === 'waiting_payment') waiting += 1;
+                 else if (tx.status === 'paid') paid += 1;
+                 else if (tx.status === 'returned') returned += 1;
+                 else if (tx.status === 'canceled') canceled += 1;
+
+                 sellerProducts.forEach((p: any) => {
+                    const qty = p.stock || p.quantity || 1;
+                    sales += p.price * qty;
+                 });
+              }
+           });
+
+           setStats({
+              waitingPayment: waiting,
+              paid,
+              returned,
+              canceled,
+              totalSales: sales,
+              totalOrders: orders
+           });
+        }
+      }
+    };
+    fetchTransactions();
+  }, [userData]);
 
   return (
     // 1. Root container dikunci tingginya (h-screen) dan overflow-hidden
@@ -132,7 +183,7 @@ export default function Home() {
                   <div className="p-6 rounded-2xl border-l-4 border-primary bg-slate-50/50">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="material-symbols-outlined text-primary">pending_actions</span>
-                      <span className="text-2xl font-black text-slate-800">12</span>
+                      <span className="text-2xl font-black text-slate-800">{stats.waitingPayment}</span>
                     </div>
                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Pesanan Perlu Diproses</p>
                     <p className="text-[10px] text-slate-400 mt-1">Perlu segera dikirim</p>
@@ -140,7 +191,7 @@ export default function Home() {
                   <div className="p-6 rounded-2xl border-l-4 border-emerald-500 bg-slate-50/50">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="material-symbols-outlined text-emerald-500">local_shipping</span>
-                      <span className="text-2xl font-black text-slate-800">45</span>
+                      <span className="text-2xl font-black text-slate-800">{stats.paid}</span>
                     </div>
                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Telah Diproses</p>
                     <p className="text-[10px] text-slate-400 mt-1">Dalam pengiriman</p>
@@ -148,7 +199,7 @@ export default function Home() {
                   <div className="p-6 rounded-2xl border-l-4 border-amber-500 bg-slate-50/50">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="material-symbols-outlined text-amber-500">assignment_return</span>
-                      <span className="text-2xl font-black text-slate-800">2</span>
+                      <span className="text-2xl font-black text-slate-800">{stats.returned}</span>
                     </div>
                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Pengembalian</p>
                     <p className="text-[10px] text-slate-400 mt-1">Menunggu review</p>
@@ -156,7 +207,7 @@ export default function Home() {
                   <div className="p-6 rounded-2xl border-l-4 border-red-500 bg-slate-50/50">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="material-symbols-outlined text-red-500">cancel</span>
-                      <span className="text-2xl font-black text-slate-800">5</span>
+                      <span className="text-2xl font-black text-slate-800">{stats.canceled}</span>
                     </div>
                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Pembatalan</p>
                     <p className="text-[10px] text-slate-400 mt-1">24 Jam terakhir</p>
@@ -180,30 +231,30 @@ export default function Home() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500 flex items-center gap-1">Penjualan <span className="material-symbols-outlined text-[14px]">info</span></p>
-                    <h4 className="text-2xl font-black text-slate-800">Rp125.400.000</h4>
+                    <h4 className="text-2xl font-black text-slate-800">Rp{stats.totalSales.toLocaleString('id-ID')}</h4>
                     <p className="text-[11px] text-emerald-500 font-bold flex items-center mt-1">
-                      <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> +12.5% vs minggu lalu
+                      {/* <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> +12.5% vs minggu lalu */}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500 flex items-center gap-1">Pengunjung <span className="material-symbols-outlined text-[14px]">info</span></p>
                     <h4 className="text-2xl font-black text-slate-800">45.290</h4>
                     <p className="text-[11px] text-emerald-500 font-bold flex items-center mt-1">
-                      <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> +5.2% vs minggu lalu
+                      {/* <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> +5.2% vs minggu lalu */}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500 flex items-center gap-1">Pesanan <span className="material-symbols-outlined text-[14px]">info</span></p>
-                    <h4 className="text-2xl font-black text-slate-800">1,204</h4>
+                    <h4 className="text-2xl font-black text-slate-800">{stats.totalOrders.toLocaleString('id-ID')}</h4>
                     <p className="text-[11px] text-red-500 font-bold flex items-center mt-1">
-                      <span className="material-symbols-outlined text-[14px] mr-1">trending_down</span> -2.1% vs minggu lalu
+                      {/* <span className="material-symbols-outlined text-[14px] mr-1">trending_down</span> -2.1% vs minggu lalu */}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500 flex items-center gap-1">Produk Diklik <span className="material-symbols-outlined text-[14px]">info</span></p>
                     <h4 className="text-2xl font-black text-slate-800">89.210</h4>
                     <p className="text-[11px] text-emerald-500 font-bold flex items-center mt-1">
-                      <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> +18.4% vs minggu lalu
+                      {/* <span className="material-symbols-outlined text-[14px] mr-1">trending_up</span> +18.4% vs minggu lalu */}
                     </p>
                   </div>
                 </div>
