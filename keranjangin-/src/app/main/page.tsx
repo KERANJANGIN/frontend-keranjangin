@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function MainPage() {
   const [user, setUser] = useState<any>(null);
+  const [isSeller, setIsSeller] = useState(false); // STATE BARU UNTUK STATUS SELLER
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -20,29 +21,38 @@ export default function MainPage() {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) router.push("/");
-      else setUser(user);
+      if (!user) {
+        router.push("/");
+      } else {
+        setUser(user);
+        
+        // --- AMBIL STATUS SELLER DARI DATABASE ---
+        const { data: profile } = await supabase
+          .from('users')
+          .select('isSeller')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          setIsSeller(profile.isSeller);
+        }
+      }
     };
     checkUser();
   }, [router]);
 
-  // --- FUNGSI ADD TO CART ---
   const addToCart = async (product: any) => {
     if (!user) return alert("Silakan login terlebih dahulu");
-
     try {
       const { error } = await supabase
         .from('cart')
-        .insert([
-          { 
+        .insert([{ 
             user_id: user.id, 
             product_id: product.id, 
             product_name: product.name, 
             price: product.price,
             quantity: 1 
-          }
-        ]);
-
+        }]);
       if (error) throw error;
       alert(`🛒 ${product.name} berhasil ditambah ke keranjang!`);
     } catch (error: any) {
@@ -70,15 +80,17 @@ export default function MainPage() {
         accountNumber: formData.accountNumber 
       }).eq('id', user.id);
 
-    if (error) alert("Gagal: " + error.message);
-    else {
+    if (error) {
+      alert("Gagal: " + error.message);
+    } else {
       alert("Selamat! Kamu resmi jadi Seller 🏪");
+      setIsSeller(true); // UPDATE UI SECARA REALTIME
       setIsModalOpen(false);
     }
     setLoading(false);
   };
 
-  if (!user) return <div className="min-h-screen bg-[#0f0f1b] flex items-center justify-center text-white italic">Loading...</div>;
+  if (!user) return <div className="min-h-screen bg-[#0f0f1b] flex items-center justify-center text-white italic tracking-widest">LOADING ECOSYSTEM...</div>;
 
   return (
     <main className="min-h-screen bg-[#0f0f1b] text-white font-sans overflow-x-hidden">
@@ -88,7 +100,7 @@ export default function MainPage() {
         <div className="flex items-center gap-6">
           <Image src="/LOGO.jpeg" alt="Logo" width={35} height={35} className="rounded-xl shadow-lg shadow-purple-500/20" />
           <div className="hidden lg:flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-            <Link href="#" className="hover:text-purple-400 transition-colors">Shop</Link>
+            <Link href="/main" className="text-white">Shop</Link>
             <Link href="#" className="hover:text-purple-400 transition-colors">Hot</Link>
           </div>
         </div>
@@ -105,21 +117,35 @@ export default function MainPage() {
         </div>
 
         <div className="flex items-center gap-5">
-          <button 
-            onClick={() => setIsModalOpen(true)} 
-            className="hidden sm:block text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-4 py-2 rounded-full hover:bg-purple-500 hover:text-white transition-all"
-          >
-            🚀 Jadi Seller
-          </button>
-          <Link href="/cart" className="text-xl hover:scale-110 transition-transform">🛒</Link>
+          {/* LOGIKA TOMBOL DINAMIS */}
+          {isSeller ? (
+            <Link 
+              href="/seller_main" 
+              className="hidden sm:block text-[9px] font-black uppercase tracking-[0.2em] bg-purple-600 text-white px-5 py-2.5 rounded-full hover:bg-purple-500 transition-all border border-purple-400/30 shadow-lg shadow-purple-500/20"
+            >
+              🏪 Seller Page
+            </Link>
+          ) : (
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="hidden sm:block text-[9px] font-black uppercase tracking-[0.2em] bg-white text-black px-5 py-2.5 rounded-full hover:bg-purple-600 hover:text-white transition-all shadow-xl active:scale-95"
+            >
+              🚀 Jadi Seller
+            </button>
+          )}
+
+          <Link href="/cart" className="text-xl hover:scale-110 transition-transform relative">
+            🛒
+          </Link>
           <Link href="/profile" className="flex items-center gap-2 group">
-             <div className="w-8 h-8 rounded-full border-2 border-purple-500 overflow-hidden group-hover:scale-105 transition-all">
+             <div className="w-8 h-8 rounded-full border-2 border-purple-500 overflow-hidden group-hover:scale-105 transition-all shadow-lg shadow-purple-500/30">
                 <Image src="/LOGO.jpeg" alt="User" width={32} height={32} />
              </div>
           </Link>
         </div>
       </nav>
 
+      {/* ... SISA KONTEN (HERO, CATEGORIES, PRODUCTS) TETAP SAMA SEPERTI SEBELUMNYA ... */}
       <div className="max-w-7xl mx-auto px-6 mt-10 space-y-16">
         
         {/* HERO BANNER */}
@@ -171,14 +197,13 @@ export default function MainPage() {
                   </div>
                   <div className="flex justify-between items-center mt-5">
                     <p className="text-white font-black text-lg">Rp 125k</p>
-                    {/* TOMBOL CART SUDAH AKTIF */}
                     <button 
                       onClick={() => addToCart({
                         id: item, 
                         name: `Item Mahasiswa ${item}`, 
                         price: 125000
                       })}
-                      className="bg-white text-black w-10 h-10 rounded-2xl flex items-center justify-center text-sm hover:bg-purple-600 hover:text-white transition-all shadow-lg"
+                      className="bg-white text-black w-10 h-10 rounded-2xl flex items-center justify-center text-sm hover:bg-purple-600 hover:text-white transition-all shadow-lg active:scale-90"
                     >
                       🛒
                     </button>
@@ -193,14 +218,14 @@ export default function MainPage() {
         <footer className="pt-20 pb-12 border-t border-white/5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             <div className="space-y-6">
-              <Image src="/LOGO.jpeg" alt="Logo" width={45} height={45} className="rounded-xl grayscale hover:grayscale-0 transition-all cursor-pointer" />
+              <Image src="/LOGO.jpeg" alt="Logo" width={45} height={45} className="rounded-xl grayscale hover:grayscale-0 transition-all cursor-pointer shadow-lg" />
               <p className="text-[10px] text-gray-500 uppercase leading-relaxed font-bold tracking-[0.2em]">Platform ekosistem jual beli khusus mahasiswa. Dari mahasiswa, untuk mahasiswa.</p>
             </div>
             <div className="grid grid-cols-2 gap-8">
                <div className="space-y-4">
                   <h4 className="text-[10px] font-black uppercase text-white tracking-widest">Navigation</h4>
                   <ul className="text-[10px] text-gray-500 font-bold space-y-2 uppercase tracking-tighter">
-                    <li><Link href="#" className="hover:text-purple-400">Main</Link></li>
+                    <li><Link href="/main" className="hover:text-purple-400">Main</Link></li>
                     <li><Link href="#" className="hover:text-purple-400">Products</Link></li>
                   </ul>
                </div>
@@ -219,7 +244,7 @@ export default function MainPage() {
         </footer>
       </div>
 
-      {/* MODAL SELLER */}
+      {/* MODAL SELLER (TETAP SAMA) */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -227,15 +252,15 @@ export default function MainPage() {
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#1a1a2e] w-full max-w-lg rounded-[40px] border border-white/10 p-10 relative z-10 shadow-2xl">
               <h2 className="text-2xl font-black italic uppercase mb-8 tracking-tighter border-l-4 border-purple-500 pl-4">Buka Toko</h2>
               <form onSubmit={handleRegisterSeller} className="space-y-4">
-                <input required placeholder="NPM Aktif (20-26)" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none focus:border-purple-500 transition-all" onChange={(e) => setFormData({...formData, npm: e.target.value})} />
-                <input required placeholder="Nama Toko" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none focus:border-purple-500 transition-all" onChange={(e) => setFormData({...formData, shopName: e.target.value})} />
-                <textarea required placeholder="Alamat Lengkap Toko" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none h-24 resize-none focus:border-purple-500 transition-all" onChange={(e) => setFormData({...formData, address: e.target.value})} />
+                <input required placeholder="NPM Aktif (20-26)" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none focus:border-purple-500 transition-all text-white" onChange={(e) => setFormData({...formData, npm: e.target.value})} />
+                <input required placeholder="Nama Toko" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none focus:border-purple-500 transition-all text-white" onChange={(e) => setFormData({...formData, shopName: e.target.value})} />
+                <textarea required placeholder="Alamat Lengkap Toko" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none h-24 resize-none focus:border-purple-500 transition-all text-white" onChange={(e) => setFormData({...formData, address: e.target.value})} />
                 <div className="grid grid-cols-2 gap-4">
-                  <input required placeholder="Kode Pos" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none" onChange={(e) => setFormData({...formData, postalCode: e.target.value})} />
-                  <input required placeholder="Bank" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none" onChange={(e) => setFormData({...formData, bankName: e.target.value})} />
+                  <input required placeholder="Kode Pos" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none text-white" onChange={(e) => setFormData({...formData, postalCode: e.target.value})} />
+                  <input required placeholder="Bank" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none text-white" onChange={(e) => setFormData({...formData, bankName: e.target.value})} />
                 </div>
-                <input required placeholder="Nomor Rekening" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none" onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} />
-                <button disabled={loading} type="submit" className="w-full bg-purple-600 text-white py-5 rounded-[24px] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:bg-purple-500 transition-all mt-4">
+                <input required placeholder="Nomor Rekening" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none text-white" onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} />
+                <button disabled={loading} type="submit" className="w-full bg-purple-600 text-white py-5 rounded-[24px] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:bg-purple-500 transition-all mt-4 active:scale-95 disabled:opacity-50">
                   {loading ? "Menyinkronkan..." : "Konfirmasi & Aktifkan Toko"}
                 </button>
               </form>

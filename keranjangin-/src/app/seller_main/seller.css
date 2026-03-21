@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #3e3a7a;
+  --color-background-light: #edf0ff;
+  --color-background-dark: #15161d;
+  --font-display: var(--font-inter), "Inter", sans-serif;
+}
+
+@layer utilities {
+  .gradient-bg {
+    background: linear-gradient(135deg, #1e1b4b 0%, #1e1b4b 50%, #0f172a 100%);
+    background-attachment: fixed;
+  }
+  .header-gradient {
+    background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
+  }
+  .white-card {
+    background: #ffffff;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  .progress-shadow {
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.3);
+  }
+  .form-input-light {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+  }
+  .form-input-light:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    background: #ffffff;
+  }
+  .glass-card {
+    background: #ffffff;
+    border: 1px solid rgba(62, 58, 122, 0.08);
+    box-shadow: 0 10px 25px -5px rgba(62, 58, 122, 0.05),
+      0 8px 10px -6px rgba(62, 58, 122, 0.05);
+  }
+}
