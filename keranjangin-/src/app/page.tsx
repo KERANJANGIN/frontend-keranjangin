@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { supabase } from "./lib/supabase"; 
+import { supabase } from "./lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -19,16 +19,29 @@ export default function Home() {
   const [fullName, setFullName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Inside src/app/page.tsx
   useEffect(() => {
+    // 1. Check if user already has a session in Supabase
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/main"); // Instantly push them to main
+      }
+    };
+
+    checkUser();
+
+    // 2. Play the card animation if they aren't logged in
     const timer = setTimeout(() => setShowCard(true), 3800);
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
+
 
   // --- LOGIKA REGISTER (DIPERBAIKI) ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) return alert("Password tidak sama!");
-    
+
     setLoading(true);
 
     // 1. Daftarkan User ke Auth Supabase
@@ -36,7 +49,7 @@ export default function Home() {
       email,
       password,
       options: {
-        data: { full_name: fullName }, 
+        data: { full_name: fullName },
       },
     });
 
@@ -49,13 +62,13 @@ export default function Home() {
     // 2. Jika Berhasil, Langsung Masukkan ke Table Public.Users
     if (authData.user) {
       const { error: profileError } = await supabase
-        .from('users') 
+        .from('users')
         .insert([
-          { 
+          {
             id: authData.user.id, // Ambil UUID unik dari Auth
             email: email,
             full_name: fullName,
-            isSeller: false 
+            isSeller: false
           }
         ]);
 
@@ -82,7 +95,7 @@ export default function Home() {
     if (error) {
       alert("Login Gagal: " + error.message);
     } else {
-      router.push("/main"); 
+      router.push("/main");
     }
     setLoading(false);
   };
@@ -93,20 +106,20 @@ export default function Home() {
 
       {/* SECTION LOGO & BRAND */}
       <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-[120px] w-full lg:w-1/2">
-        <motion.div 
+        <motion.div
           animate={showCard ? { x: typeof window !== 'undefined' && window.innerWidth > 1024 ? -60 : 0 } : { x: 0 }}
           className="relative flex flex-col lg:flex-row items-center justify-center"
         >
           <motion.div
             initial={{ y: -800, opacity: 0 }}
-            animate={{ 
-              y: 0, 
-              opacity: 1, 
-              x: typeof window !== 'undefined' && window.innerWidth > 1024 ? [0, 0, -140] : 0 
+            animate={{
+              y: 0,
+              opacity: 1,
+              x: typeof window !== 'undefined' && window.innerWidth > 1024 ? [0, 0, -140] : 0
             }}
-            transition={{ 
+            transition={{
               y: { duration: 1.2, type: "spring", bounce: 0.3 },
-              x: { delay: 1.0, duration: 0.8, ease: "easeInOut" } 
+              x: { delay: 1.0, duration: 0.8, ease: "easeInOut" }
             }}
             className="z-50 flex-shrink-0 mb-4 lg:mb-0"
           >
@@ -136,19 +149,19 @@ export default function Home() {
         {showCard && (
           <motion.div
             initial={{ y: 50, opacity: 0 }}
-            animate={{ 
-              y: 0, 
-              opacity: 1, 
-              rotateY: isFlipped ? 180 : 0 
+            animate={{
+              y: 0,
+              opacity: 1,
+              rotateY: isFlipped ? 180 : 0
             }}
-            transition={{ 
+            transition={{
               rotateY: { duration: 0.6, ease: "easeInOut" },
               default: { type: "spring", stiffness: 80, damping: 15 }
             }}
             className="w-full h-full [transform-style:preserve-3d] relative"
           >
             {/* FRONT (LOGIN) */}
-            <form 
+            <form
               onSubmit={handleLogin}
               className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] flex flex-col justify-between"
             >
@@ -158,7 +171,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <InputField label="Email Address" type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   <InputField label="Password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                  <button 
+                  <button
                     type="submit" disabled={loading}
                     className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 hover:brightness-110 active:scale-95 transition-all shadow-lg disabled:opacity-50"
                   >
@@ -172,7 +185,7 @@ export default function Home() {
             </form>
 
             {/* BACK (SIGN UP) */}
-            <form 
+            <form
               onSubmit={handleRegister}
               className="absolute inset-0 bg-white rounded-[40px] p-8 md:p-10 shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-between"
             >
@@ -184,7 +197,7 @@ export default function Home() {
                   <InputField label="Email Address" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   <InputField label="Password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <InputField label="Confirm Password" type="password" placeholder="Confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-                  <button 
+                  <button
                     type="submit" disabled={loading}
                     className="w-full bg-[#8b5cf6] text-white font-bold py-4 rounded-2xl mt-4 shadow-lg disabled:opacity-50"
                   >
@@ -215,7 +228,7 @@ function InputField({ label, type, placeholder, value, onChange, required }: Inp
   return (
     <div className="text-left">
       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{label}</label>
-      <input 
+      <input
         type={type} placeholder={placeholder} value={value} onChange={onChange} required={required}
         className="w-full mt-1 p-3.5 bg-gray-50 border-2 border-transparent rounded-2xl text-gray-800 focus:bg-white focus:border-purple-400 outline-none transition-all placeholder:text-gray-300"
       />

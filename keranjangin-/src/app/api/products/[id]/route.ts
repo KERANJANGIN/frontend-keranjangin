@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // ────────────────────────────────────────────────────
 // Helper to extract ID from params
@@ -54,7 +54,7 @@ export async function PUT(
     const body = await request.json();
     
     // Extract valid fields you want to allow updating
-    const { name, description, price, stock, category } = body;
+    const { name, description, price, stock, category, img_path, product_code, min_quantity, weight, size } = body;
 
     // Build the update object dynamically
     const updateData: any = {};
@@ -63,6 +63,11 @@ export async function PUT(
     if (price !== undefined) updateData.price = price;
     if (stock !== undefined) updateData.stock = stock;
     if (category !== undefined) updateData.category = category;
+    if (img_path !== undefined) updateData.img_path = img_path;
+    if (product_code !== undefined) updateData.product_code = product_code;
+    if (min_quantity !== undefined) updateData.min_quantity = min_quantity;
+    if (weight !== undefined) updateData.weight = weight;
+    if (size !== undefined) updateData.size = size;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // ────────────────────────────────────────────────────
 // GET /API/products
@@ -13,13 +13,16 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const category = searchParams.get('category');
         const seller = searchParams.get('seller');
+        const name = searchParams.get('name');
+
 
         let query = supabase.from('products').select('*');
 
         if (category) query = query.eq('category', category);
         if (seller) query = query.eq('seller', Number(seller));
+        if (name) query = query.ilike('name', `%${name}%`);
 
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('createdAt', { ascending: false });
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });
@@ -37,19 +40,19 @@ export async function GET(request: Request) {
 
 // ────────────────────────────────────────────────────
 // POST /API/products
-//  Required body: { name, description, price, stock, seller }
-//  Optional body: { category }
+//  Required body: { name, description, price, stock, seller, img_path, product_code, weight }
+//  Optional body: { category, min_quantity, size }
 // ────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, description, price, stock, seller, category } = body;
+        const { name, description, price, stock, seller, category, img_path, product_code, min_quantity, weight, size } = body;
 
         // ── Validation ────────────────────────────────
-        if (!name || !description || price == null || stock == null || !seller) {
+        if (!name || !description || price == null || stock == null || !seller || !img_path || !product_code || weight == null) {
             return NextResponse.json(
-                { error: 'name, description, price, stock, and seller are required' },
+                { error: 'name, description, price, stock, seller, img_path, product_code, and weight are required' },
                 { status: 400 }
             );
         }
@@ -68,6 +71,13 @@ export async function POST(request: Request) {
             );
         }
 
+        if (typeof weight !== 'number' || weight < 0) {
+            return NextResponse.json(
+                { error: 'weight must be a non-negative number' },
+                { status: 400 }
+            );
+        }
+
         // ── Insert ────────────────────────────────────
         const { data, error } = await supabase
             .from('products')
@@ -79,6 +89,11 @@ export async function POST(request: Request) {
                     stock,
                     seller,
                     category: category ?? null,
+                    img_path,
+                    product_code,
+                    min_quantity: min_quantity ?? 1,
+                    weight,
+                    size: size ?? null,
                 },
             ])
             .select()

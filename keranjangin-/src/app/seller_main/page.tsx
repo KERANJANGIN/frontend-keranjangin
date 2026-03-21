@@ -1,6 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Fetch matched user details from public.users table based on session id
+        const { data } = await supabase
+          .from("users")
+          .select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at")
+          .eq("id", session.user.id)
+          .single();
+          
+        if (data) {
+          setUserData(data);
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     // 1. Root container dikunci tingginya (h-screen) dan overflow-hidden
     <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden">
@@ -78,10 +103,10 @@ export default function Home() {
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-white/20">
               <div className="text-right hidden sm:block text-white">
-                <p className="text-sm font-bold leading-none">Indo Tech Store</p>
-                <p className="text-[10px] opacity-80 mt-1">Official Partner</p>
+                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
               </div>
-              <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}></div>
+              <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
             </div>
           </div>
         </header>
@@ -91,7 +116,7 @@ export default function Home() {
 
           <div className="mb-4">
             <h2 className="text-3xl font-black text-white tracking-tight">Dashboard Utama</h2>
-            <p className="text-white/80 mt-1">Halo Indo Tech Store, yuk cek update toko kamu hari ini.</p>
+            <p className="text-white/80 mt-1">Halo {userData?.full_name || "Seller"}, yuk cek update toko kamu hari ini.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
