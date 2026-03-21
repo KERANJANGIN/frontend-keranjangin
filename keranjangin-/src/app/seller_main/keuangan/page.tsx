@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabase";
 import Link from "next/link";
 
 // --- DUMMY DATA KEUANGAN ---
@@ -53,6 +54,19 @@ const riwayatTransaksi = [
 ];
 
 export default function KeuanganPage() {
+    const [userData, setUserData] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                if (data) setUserData(data);
+            }
+        };
+        fetchUser();
+    }, []);
+
     const [filterBulan, setFilterBulan] = useState("Maret 2026");
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [withdrawStep, setWithdrawStep] = useState(1); // 1: Input Nominal, 2: PIN
@@ -128,10 +142,10 @@ export default function KeuanganPage() {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block text-white">
-                                <p className="text-sm font-bold leading-none">Indo Tech Store</p>
-                                <p className="text-[10px] opacity-80 mt-1">Official Partner</p>
+                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
                             </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}></div>
+                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                         </div>
                     </div>
                 </header>
@@ -277,7 +291,7 @@ export default function KeuanganPage() {
                                             <td className="px-6 py-4 text-right whitespace-nowrap">
                                                 {/* Mewarnai Nominal Berdasarkan Tipe Transaksi (Penting untuk UX Keuangan) */}
                                                 <p className={`text-sm font-black ${trx.tipe === 'income' ? 'text-emerald-600' :
-                                                        trx.tipe === 'penalty' ? 'text-red-500' : 'text-slate-800'
+                                                    trx.tipe === 'penalty' ? 'text-red-500' : 'text-slate-800'
                                                     }`}>
                                                     {trx.nominal}
                                                 </p>

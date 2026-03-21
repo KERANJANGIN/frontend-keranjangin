@@ -1,6 +1,58 @@
+"use client";
 import Link from "next/link";
 
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabase";
+import { useRouter } from "next/navigation";
+
 export default function TambahProdukDetail() {
+  const [userData, setUserData] = useState<any>(null);
+  const router = useRouter();
+
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [minQuantity, setMinQuantity] = useState("1");
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+        if (data) setUserData(data);
+      }
+    };
+    fetchUser();
+
+    // Recover state
+    const saved = sessionStorage.getItem("newProductDraft");
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.description) setDescription(data.description);
+      if (data.price) setPrice(data.price);
+      if (data.stock) setStock(data.stock);
+      if (data.min_quantity) setMinQuantity(data.min_quantity);
+    }
+  }, []);
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!description.trim() || !price || !stock) {
+      alert("Harap isi Deskripsi, Harga, dan Stok");
+      return;
+    }
+    const saved = JSON.parse(sessionStorage.getItem("newProductDraft") || "{}");
+    const updated = { 
+      ...saved, 
+      description, 
+      price: Number(price), 
+      stock: Number(stock),
+      min_quantity: Number(minQuantity) || 1
+    };
+    sessionStorage.setItem("newProductDraft", JSON.stringify(updated));
+    router.push("/seller_main/produk/tambah/step3");
+  };
+
   return (
     <div className="flex h-screen w-full bg-[#1e1b4b] font-display text-slate-100 overflow-hidden">
 
@@ -8,7 +60,7 @@ export default function TambahProdukDetail() {
       <aside className="w-64 fixed inset-y-0 left-0 flex flex-col z-50 border-r border-slate-200" style={{ backgroundColor: "#FFFFFF" }}>
         <div className="p-6 flex items-center gap-3">
           <div className="size-10 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
-            <img src="/image/logo.png" alt="Keranjangin Logo" className="w-full h-full object-contain" />
+            <img src="/LOGO.jpeg" alt="Keranjangin Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight text-slate-900 dark:text-slate-100">Seller Center</h1>
@@ -16,32 +68,32 @@ export default function TambahProdukDetail() {
           </div>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/">
+          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main">
             <span className="material-symbols-outlined">home</span>
             <span>Home</span>
           </Link>
-          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/pesanan">
+          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pesanan">
             <span className="material-symbols-outlined">shopping_bag</span>
             <span>Pesanan</span>
           </Link>
-          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/produk">
+          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/seller_main/produk">
             <span className="material-symbols-outlined">package_2</span>
             <span>Produk</span>
           </Link>
-          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/marketing">
+          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/marketing">
             <span className="material-symbols-outlined">campaign</span>
             <span>Marketing</span>
           </Link>
-          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/analytics">
+          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/analytics">
             <span className="material-symbols-outlined">analytics</span>
             <span>Analytics</span>
           </Link>
-          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/keuangan">
+          <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/keuangan">
             <span className="material-symbols-outlined">account_balance_wallet</span>
             <span>Keuangan</span>
           </Link>
           <div className="pt-4 mt-4 border-t border-slate-200">
-            <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/pengaturan">
+            <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pengaturan">
               <span className="material-symbols-outlined">settings</span>
               <span>Pengaturan</span>
             </Link>
@@ -63,7 +115,7 @@ export default function TambahProdukDetail() {
         <header className="h-20 shrink-0 flex items-center justify-between px-8 bg-[#9288f8] shadow-md z-40">
           <div className="flex items-center gap-4">
             <div className="flex items-center text-sm font-bold text-white tracking-wide">
-              <Link className="hover:underline" href="/produk">My Products</Link>
+              <Link className="hover:underline" href="/seller_main/produk">My Products</Link>
               <span className="material-symbols-outlined mx-2 text-base">chevron_right</span>
               <span>Add New Product</span>
             </div>
@@ -84,12 +136,12 @@ export default function TambahProdukDetail() {
               <div className="h-8 w-px bg-white/20 mx-2"></div>
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block text-white">
-                  <p className="text-sm font-bold leading-none">Indo Tech Store</p>
-                  <p className="text-[10px] opacity-80 mt-1">Official Partner</p>
+                  <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                  <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
                 </div>
                 <div
                   className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer"
-                  style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}
+                  style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}
                 ></div>
               </div>
             </div>
@@ -128,7 +180,12 @@ export default function TambahProdukDetail() {
                 {/* Product Description */}
                 <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
                   <label className="block text-sm font-bold text-slate-700 mb-3">Deskripsi Produk</label>
-                  <textarea className="w-full min-h-[160px] rounded-lg border-slate-400 bg-slate-50 focus:border-primary focus:ring-primary p-4 text-sm outline-none placeholder:text-slate-400 text-slate-800" placeholder="Masukkan deskripsi produk Anda di sini..."></textarea>
+                  <textarea 
+                    className="w-full min-h-[160px] rounded-lg border-slate-400 bg-slate-50 focus:border-primary focus:ring-primary p-4 text-sm outline-none placeholder:text-slate-400 text-slate-800" 
+                    placeholder="Masukkan deskripsi produk Anda di sini..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  ></textarea>
                 </div>
 
                 {/* Price and Stock */}
@@ -140,12 +197,26 @@ export default function TambahProdukDetail() {
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                           <span className="text-slate-500 font-medium">Rp</span>
                         </div>
-                        <input className="w-full pl-12 pr-4 py-3 rounded-lg border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" placeholder="0" type="text" />
+                        <input 
+                          className="w-full pl-12 pr-4 py-3 rounded-lg border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" 
+                          placeholder="0" 
+                          type="number" 
+                          min="0"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                        />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-3">Stok</label>
-                      <input className="w-full px-4 py-3 rounded-lg border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" placeholder="0" type="number" />
+                      <input 
+                        className="w-full px-4 py-3 rounded-lg border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" 
+                        placeholder="0" 
+                        type="number"
+                        min="0"
+                        value={stock}
+                        onChange={(e) => setStock(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -154,7 +225,14 @@ export default function TambahProdukDetail() {
                 <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-200 space-y-6">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Min. Jumlah Pembelian</label>
-                    <input className="w-full px-4 py-3 rounded-lg border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm mb-2 outline-none text-slate-800" placeholder="1" type="number" />
+                    <input 
+                      className="w-full px-4 py-3 rounded-lg border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm mb-2 outline-none text-slate-800" 
+                      placeholder="1" 
+                      type="number"
+                      min="1"
+                      value={minQuantity}
+                      onChange={(e) => setMinQuantity(e.target.value)}
+                    />
                     <p className="text-xs text-slate-500 leading-relaxed">
                       Min. jumlah pembelian adalah min. jumlah yang harus dipesan Pembeli untuk membeli produk atau variasi. Pembeli tidak dapat membuat pesanan jika stok kurang dari min. jumlah pembelian.
                     </p>
@@ -176,12 +254,12 @@ export default function TambahProdukDetail() {
 
               {/* Footer Buttons */}
               <div className="mt-10 flex items-center justify-between pb-8">
-                <Link href="/produk/tambah" className="px-8 py-2.5 rounded-lg border border-slate-400/50 text-slate-200 font-bold hover:bg-white/10 transition-colors cursor-pointer">
+                <Link href="/seller_main/produk/tambah" className="px-8 py-2.5 rounded-lg border border-slate-400/50 text-slate-200 font-bold hover:bg-white/10 transition-colors cursor-pointer">
                   Kembali
                 </Link>
-                <Link href="/produk/tambah/step3" className="px-10 py-2.5 rounded-lg bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 cursor-pointer flex items-center justify-center border-none">
+                <button onClick={handleNext} className="px-10 py-2.5 rounded-lg bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 cursor-pointer flex items-center justify-center border-none">
                   Selanjutnya
-                </Link>
+                </button>
               </div>
 
             </div>
@@ -206,9 +284,9 @@ export default function TambahProdukDetail() {
                 <div className="flex items-center gap-2">
                   <div
                     className="w-7 h-7 rounded-full bg-slate-300 bg-cover bg-center border border-white/50"
-                    style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}
+                    style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}
                   ></div>
-                  <span className="text-sm font-bold text-slate-800">username</span>
+                  <span className="text-sm font-bold text-slate-800">{userData?.shopName || "Toko"}</span>
                 </div>
                 <button className="text-[11px] bg-white/90 text-slate-800 px-3 py-1.5 rounded flex items-center gap-1 font-bold shadow-sm hover:bg-white transition-colors cursor-pointer border border-slate-200/50">
                   Kunjungi

@@ -1,6 +1,95 @@
+"use client";
 import Link from "next/link";
 
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabase";
+import { useRouter } from "next/navigation";
+
 export default function TambahProdukPengiriman() {
+    const [userData, setUserData] = useState<any>(null);
+    const router = useRouter();
+
+    const [weight, setWeight] = useState("");
+    const [lebar, setLebar] = useState("");
+    const [panjang, setPanjang] = useState("");
+    const [tinggi, setTinggi] = useState("");
+    const [productStatus, setProductStatus] = useState("live");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                if (data) setUserData(data);
+            }
+        };
+        fetchUser();
+
+        const saved = sessionStorage.getItem("newProductDraft");
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.weight) setWeight(data.weight);
+            if (data.product_status) setProductStatus(data.product_status);
+            if (data.size) {
+                setPanjang(data.size.panjang || "");
+                setLebar(data.size.lebar || "");
+                setTinggi(data.size.tinggi || "");
+            }
+        }
+    }, []);
+
+    const handleSubmit = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!weight || !userData?.id) {
+            alert("Harap isi Berat Produk!");
+            return;
+        }
+
+        setIsSubmitting(true);
+        const saved = JSON.parse(sessionStorage.getItem("newProductDraft") || "{}");
+        const payload = {
+            name: saved.name || "Unnamed Product",
+            description: saved.description || "",
+            price: saved.price || 0,
+            stock: saved.stock || 0,
+            seller: userData.id,
+            category: saved.category || "Home & Living",
+            img_path: saved.img_path || ("https://ui-avatars.com/api/?background=random&name=" + encodeURIComponent(saved.name || "Product")),
+            product_code: saved.product_code || "SKU-000",
+            min_quantity: saved.min_quantity || 1,
+            weight: Number(weight),
+            size: {
+                panjang: Number(panjang) || 0,
+                lebar: Number(lebar) || 0,
+                tinggi: Number(tinggi) || 0
+            },
+            product_status: productStatus
+        };
+
+        try {
+            const res = await fetch("/api/products", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                sessionStorage.removeItem("newProductDraft");
+                alert("Produk berhasil ditambahkan!");
+                router.push("/seller_main/produk");
+            } else {
+                const err = await res.json();
+                alert("Gagal menyimpan produk: " + (err.error || "Unknown Error"));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Terjadi kesalahan sistem.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="flex h-screen w-full bg-[#1e1b4b] font-display text-slate-100 overflow-hidden">
 
@@ -8,7 +97,7 @@ export default function TambahProdukPengiriman() {
             <aside className="w-64 fixed inset-y-0 left-0 flex flex-col z-50 border-r border-slate-200" style={{ backgroundColor: "#FFFFFF" }}>
                 <div className="p-6 flex items-center gap-3">
                     <div className="size-10 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
-                        <img src="/image/logo.png" alt="Keranjangin Logo" className="w-full h-full object-contain" />
+                        <img src="/LOGO.jpeg" alt="Keranjangin Logo" className="w-full h-full object-contain" />
                     </div>
                     <div>
                         <h1 className="font-bold text-lg leading-tight text-slate-900 dark:text-slate-100">Seller Center</h1>
@@ -16,32 +105,32 @@ export default function TambahProdukPengiriman() {
                     </div>
                 </div>
                 <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main">
                         <span className="material-symbols-outlined">home</span>
                         <span>Home</span>
                     </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/pesanan">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pesanan">
                         <span className="material-symbols-outlined">shopping_bag</span>
                         <span>Pesanan</span>
                     </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/produk">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/seller_main/produk">
                         <span className="material-symbols-outlined">package_2</span>
                         <span>Produk</span>
                     </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/marketing">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/marketing">
                         <span className="material-symbols-outlined">campaign</span>
                         <span>Marketing</span>
                     </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/analytics">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/analytics">
                         <span className="material-symbols-outlined">analytics</span>
                         <span>Analytics</span>
                     </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/keuangan">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/keuangan">
                         <span className="material-symbols-outlined">account_balance_wallet</span>
                         <span>Keuangan</span>
                     </Link>
                     <div className="pt-4 mt-4 border-t border-slate-200">
-                        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/pengaturan">
+                        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pengaturan">
                             <span className="material-symbols-outlined">settings</span>
                             <span>Pengaturan</span>
                         </Link>
@@ -63,7 +152,7 @@ export default function TambahProdukPengiriman() {
                 <header className="h-20 shrink-0 flex items-center justify-between px-8 bg-[#9288f8] shadow-md z-40">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center text-sm font-bold text-white tracking-wide">
-                            <Link className="hover:underline" href="/produk">My Products</Link>
+                            <Link className="hover:underline" href="/seller_main/produk">My Products</Link>
                             <span className="material-symbols-outlined mx-2 text-base">chevron_right</span>
                             <span>Add New Product</span>
                         </div>
@@ -84,12 +173,12 @@ export default function TambahProdukPengiriman() {
                             <div className="h-8 w-px bg-white/20 mx-2"></div>
                             <div className="flex items-center gap-3">
                                 <div className="text-right hidden sm:block text-white">
-                                    <p className="text-sm font-bold leading-none">Indo Tech Store</p>
-                                    <p className="text-[10px] opacity-80 mt-1">Official Partner</p>
+                                    <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                                    <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
                                 </div>
                                 <div
                                     className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer"
-                                    style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}
+                                    style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}
                                 ></div>
                             </div>
                         </div>
@@ -134,7 +223,14 @@ export default function TambahProdukPengiriman() {
                                             <span className="text-primary mr-1 text-base">*</span>Berat
                                         </label>
                                         <div className="relative">
-                                            <input className="w-full pl-4 pr-16 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" placeholder="Mohon masukkan berat produk setelah dikemas" type="number" />
+                                            <input 
+                                                className="w-full pl-4 pr-16 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" 
+                                                placeholder="Mohon masukkan berat produk setelah dikemas" 
+                                                type="number"
+                                                min="0"
+                                                value={weight}
+                                                onChange={(e) => setWeight(e.target.value)}
+                                            />
                                             <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                                 {/* Garis pemisah vertical kecil sebelum tulisan 'gr' */}
                                                 <div className="h-6 w-px bg-slate-300 mr-3"></div>
@@ -149,7 +245,14 @@ export default function TambahProdukPengiriman() {
                                         <div className="flex items-center gap-4">
                                             {/* Input L */}
                                             <div className="relative flex-1">
-                                                <input className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" placeholder="L" type="number" />
+                                                <input 
+                                                    className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" 
+                                                    placeholder="L" 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={lebar}
+                                                    onChange={(e) => setLebar(e.target.value)}
+                                                />
                                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                                     <div className="h-5 w-px bg-slate-300 mr-2"></div>
                                                     <span className="text-slate-500 font-medium text-xs">cm</span>
@@ -159,7 +262,14 @@ export default function TambahProdukPengiriman() {
 
                                             {/* Input P */}
                                             <div className="relative flex-1">
-                                                <input className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" placeholder="P" type="number" />
+                                                <input 
+                                                    className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" 
+                                                    placeholder="P" 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={panjang}
+                                                    onChange={(e) => setPanjang(e.target.value)}
+                                                />
                                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                                     <div className="h-5 w-px bg-slate-300 mr-2"></div>
                                                     <span className="text-slate-500 font-medium text-xs">cm</span>
@@ -169,7 +279,14 @@ export default function TambahProdukPengiriman() {
 
                                             {/* Input T */}
                                             <div className="relative flex-1">
-                                                <input className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" placeholder="T" type="number" />
+                                                <input 
+                                                    className="w-full pl-4 pr-12 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800" 
+                                                    placeholder="T" 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={tinggi}
+                                                    onChange={(e) => setTinggi(e.target.value)}
+                                                />
                                                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                                     <div className="h-5 w-px bg-slate-300 mr-2"></div>
                                                     <span className="text-slate-500 font-medium text-xs">cm</span>
@@ -179,9 +296,35 @@ export default function TambahProdukPengiriman() {
                                     </div>
                                 </div>
 
-                                {/* Bagian 2: Pengaturan Lanjut (Bahaya, PO, Asuransi) */}
+                                {/* Bagian 2: Default status product */}
+                                <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-200 space-y-8">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-3">
+                                            <span className="text-primary mr-1 text-base">*</span>Status Produk
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="product_status"
+                                                className="w-full pl-4 pr-10 py-3 rounded-lg border border-slate-200 bg-slate-50 focus:border-primary focus:ring-primary text-sm outline-none text-slate-800 appearance-none cursor-pointer"
+                                                value={productStatus}
+                                                onChange={(e) => setProductStatus(e.target.value)}
+                                            >
+                                                <option value="live" className="font-medium">Live (Langsung Tampil)</option>
+                                                <option value="not_shown" className="font-medium">Not Shown (Disembunyikan)</option>
+                                                <option value="action_needed" className="font-medium">Action Needed (Perlu Review)</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                                <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-slate-500 leading-relaxed mt-2">
+                                            Pilih <span className="font-bold">Live</span> agar produk langsung bisa dibeli oleh pelanggan.
+                                        </p>
+                                    </div>
+                                </div>
                                 <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-200 space-y-8">
 
+                                    {/* Bagian 3: Produk Berbahaya, Asuransi, Pre-order */}
                                     {/* Produk Berbahaya */}
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-3">
@@ -243,12 +386,16 @@ export default function TambahProdukPengiriman() {
 
                             {/* Footer Buttons */}
                             <div className="mt-10 flex items-center justify-between pb-8">
-                                <Link href="/produk/tambah/detail" className="px-8 py-2.5 rounded-lg border border-slate-400/50 text-slate-200 font-bold hover:bg-white/10 transition-colors cursor-pointer">
+                                <Link href="/seller_main/produk/tambah/detail" className="px-8 py-2.5 rounded-lg border border-slate-400/50 text-slate-200 font-bold hover:bg-white/10 transition-colors cursor-pointer">
                                     Kembali
                                 </Link>
-                                <Link href="/produk" className="px-10 py-2.5 rounded-lg bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all transform active:scale-95 cursor-pointer flex items-center justify-center border-none">
-                                    Selesai
-                                </Link>
+                                <button 
+                                    onClick={handleSubmit} 
+                                    disabled={isSubmitting}
+                                    className={`px-10 py-2.5 rounded-lg text-white font-bold shadow-lg transition-all transform active:scale-95 cursor-pointer flex items-center justify-center border-none ${isSubmitting ? 'bg-primary/50 cursor-not-allowed' : 'bg-primary shadow-primary/20 hover:bg-primary/90'}`}
+                                >
+                                    {isSubmitting ? 'Menyimpan...' : 'Selesai'}
+                                </button>
                             </div>
 
                         </div>
@@ -273,9 +420,9 @@ export default function TambahProdukPengiriman() {
                                 <div className="flex items-center gap-2">
                                     <div
                                         className="w-7 h-7 rounded-full bg-slate-300 bg-cover bg-center border border-white/50"
-                                        style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}
+                                        style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}
                                     ></div>
-                                    <span className="text-sm font-bold text-slate-800">username</span>
+                                    <span className="text-sm font-bold text-slate-800">{userData?.shopName || "Toko"}</span>
                                 </div>
                                 <button className="text-[11px] bg-white/90 text-slate-800 px-3 py-1.5 rounded flex items-center gap-1 font-bold shadow-sm hover:bg-white transition-colors cursor-pointer border border-slate-200/50">
                                     Kunjungi

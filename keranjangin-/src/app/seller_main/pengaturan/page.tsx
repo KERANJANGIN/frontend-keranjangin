@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { supabase } from "@/app/lib/supabase";
 import Link from "next/link";
 
 const SETTING_TABS = [
@@ -12,29 +13,35 @@ const SETTING_TABS = [
 ];
 
 export default function SettingsPage() {
+    const [userData, setUserData] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                if (data) setUserData(data);
+            }
+        };
+        fetchUser();
+    }, []);
+
     const [activeTab, setActiveTab] = useState("pengiriman"); // Set default ke Pengiriman untuk preview
     const [storeStatus, setStoreStatus] = useState("aktif");
-    const [formProfil, setFormProfil] = useState({
-    nama: "Indo Tech Store",
-    slogan: "Solusi Gadget Tercepat",
-    deskripsi: "Toko resmi penyedia hardware PC dan aksesoris gaming terbaik di Indonesia."
-});
 
     // State Profil Toko
     const [logoPreview, setLogoPreview] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW");
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    
+    const fileInputRef = useRef(null);
 
-    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (file && (file.type === "image/png" || file.type === "image/jpeg")) {
-        const imageUrl = URL.createObjectURL(file);
-        setLogoPreview(imageUrl);
-    } else {
-        alert("Gunakan format PNG atau JPG ya!");
-    }
-};
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file && (file.type === "image/png" || file.type === "image/jpeg")) {
+            const imageUrl = URL.createObjectURL(file);
+            setLogoPreview(imageUrl);
+        } else {
+            alert("Gunakan format PNG atau JPG ya!");
+        }
+    };
 
     return (
         <div className="flex h-screen w-full font-display text-slate-100 bg-[#1e1b4b] overflow-hidden">
@@ -110,10 +117,10 @@ export default function SettingsPage() {
                         <div className="h-8 w-px bg-white/20 mx-2"></div>
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block text-white">
-                                <p className="text-sm font-bold leading-none">Indo Tech Store</p>
-                                <p className="text-[10px] opacity-80 mt-1">Official Partner</p>
+                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
                             </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}></div>
+                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                         </div>
                     </div>
                 </header>
@@ -200,14 +207,14 @@ export default function SettingsPage() {
                                             <div className="flex items-center gap-6">
                                                 <div className="relative size-24 rounded-full overflow-hidden border-2 border-slate-200 shadow-inner group">
                                                     <img src={logoPreview} alt="Preview Logo" className="w-full h-full object-cover" />
-                                                    <div onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-slate-900/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                                    <div onClick={() => fileInputRef.current.click()} className="absolute inset-0 bg-slate-900/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                                         <span className="material-symbols-outlined text-[20px]">photo_camera</span>
                                                         <span className="text-[9px] font-bold mt-1">Ubah</span>
                                                     </div>
                                                 </div>
                                                 <input type="file" ref={fileInputRef} onChange={handleLogoChange} accept="image/png, image/jpeg" className="hidden" />
                                                 <div>
-                                                    <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+                                                    <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
                                                         Pilih Gambar
                                                     </button>
                                                     <p className="text-[11px] text-slate-400 mt-2">Maksimal ukuran 2MB (PNG/JPG).</p>
@@ -217,12 +224,7 @@ export default function SettingsPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-sm font-bold text-slate-700">Nama Toko <span className="text-red-500">*</span></label>
-                                                <input
-                                                    type="text"
-                                                    value={formProfil.nama}
-                                                    onChange={(e) => setFormProfil({...formProfil, nama: e.target.value})} 
-                                                    maxLength={30} 
-                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                                                <input type="text" defaultValue="Indo Tech Store" maxLength={30} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
                                             </div>
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-sm font-bold text-slate-700">Slogan</label>

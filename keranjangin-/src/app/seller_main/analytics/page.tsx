@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabase";
 import Link from "next/link";
-import { supabase } from "../../lib/supabase"; 
 import { useRouter } from "next/navigation";
 
 // --- DUMMY DATA ANALYTICS ---
@@ -21,6 +21,19 @@ const topProduk = [
 ];
 
 export default function AnalyticsPage() {
+    const [userData, setUserData] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                if (data) setUserData(data);
+            }
+        };
+        fetchUser();
+    }, []);
+
     const [dateRange, setDateRange] = useState("01 Mar - 20 Mar");
 
     return (
@@ -94,10 +107,10 @@ export default function AnalyticsPage() {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block text-white">
-                                <p className="text-sm font-bold leading-none">Indo Tech Store</p>
-                                <p className="text-[10px] opacity-80 mt-1">Official Partner</p>
+                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
                             </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW')" }}></div>
+                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                         </div>
                     </div>
                 </header>
@@ -316,7 +329,7 @@ export default function AnalyticsPage() {
                             <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 h-full">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="font-bold text-lg text-slate-800">Top 5 Produk</h3>
-                                    <Link href="/produk" className="text-xs font-bold text-primary hover:underline">Lihat Semua</Link>
+                                    <Link href="/seller_main/produk" className="text-xs font-bold text-primary hover:underline">Lihat Semua</Link>
                                 </div>
 
                                 <div className="space-y-5">

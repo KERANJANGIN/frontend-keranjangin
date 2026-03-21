@@ -1,29 +1,11 @@
-"use client";
+"use client"; // Wajib ditambahkan di Next.js App Router jika menggunakan useState
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/app/lib/supabase";
 import Link from "next/link";
 
-// 1. INTERFACE UNTUK TYPESCRIPT (Menghilangkan error 'any')
-interface Pesanan {
-    id: string;
-    statusTab: string;
-    waktuPesanan: string;
-    statusUrgensi: 'normal' | 'warning' | 'critical';
-    batasWaktu: string;
-    iconProduk: string;
-    namaProduk: string;
-    rincian: string;
-    kurir: string;
-    badgeKurir: string | null;
-    inisial: string;
-    pembeli: string;
-    total: string;
-    tombolAksi: string;
-    tipeTombol: 'primary' | 'success' | 'outline';
-}
-
-// 2. DATA DUMMY DENGAN TIPE PESANAN[]
-const pesananData: Pesanan[] = [
+// 1. DATA DUMMY PESANAN (Memiliki properti statusTab untuk filtering)
+const pesananData = [
     {
         id: "#ORD-99281",
         statusTab: "Perlu Dikirim",
@@ -94,47 +76,65 @@ const pesananData: Pesanan[] = [
     }
 ];
 
+// Daftar semua tab yang tersedia
 const DAFTAR_TAB = ["Semua", "Belum Bayar", "Perlu Dikirim", "Dikirim", "Selesai", "Dibatalkan", "Retur"];
 
 export default function KelolaPesanan() {
-    const [activeTab, setActiveTab] = useState<string>("Perlu Dikirim");
+    const [userData, setUserData] = useState<any>(null);
 
-    // FILTER DATA (Dikasih tipe Pesanan)
-    const dataYangDitampilkan = pesananData.filter((order: Pesanan) => {
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                if (data) setUserData(data);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    // 2. STATE UNTUK TAB AKTIF
+    const [activeTab, setActiveTab] = useState("Perlu Dikirim");
+
+    // 3. FUNGSI FILTER DATA
+    const dataYangDitampilkan = pesananData.filter((order) => {
         if (activeTab === "Semua") return true;
         return order.statusTab === activeTab;
     });
 
-    // FIX LINE 92: Menghitung jumlah per tab dengan tipe data yang jelas
-    const getTabCount = (tabName: string) => {
+    // Fungsi pembantu untuk menghitung jumlah pesanan per tab
+    const getTabCount = (tabName) => {
         if (tabName === "Semua") return "";
-        const count = pesananData.filter((order: Pesanan) => order.statusTab === tabName).length;
+        const count = pesananData.filter(order => order.statusTab === tabName).length;
         return count > 0 ? ` (${count})` : "";
     };
 
     return (
-        <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden bg-[#1e1b4b]">
-            
+        <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden">
+
             {/* Sidebar */}
             <aside className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col z-50">
-                <div className="p-6 flex items-center gap-3 border-b border-slate-50">
+                <div className="p-6 flex items-center gap-3">
                     <div className="size-10 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
-                        <img src="/LOGO.jpeg" alt="Logo" className="w-full h-full object-contain" />
+                        <img src="/LOGO.jpeg" alt="Keranjangin Logo" className="w-full h-full object-contain" />
                     </div>
                     <div>
-                        <h1 className="font-bold text-lg text-slate-900 leading-tight">Seller Center</h1>
-                        <p className="text-[10px] uppercase tracking-wider text-blue-600 font-bold">Keranjangin</p>
+                        <h1 className="font-bold text-lg leading-tight">Seller Center</h1>
+                        <p className="text-[10px] uppercase tracking-wider text-primary font-bold">Powered by Keranjangin</p>
                     </div>
                 </div>
-                <nav className="flex-1 px-4 py-4 space-y-1">
-                    <Link href="/seller_main" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
-                        <span className="material-symbols-outlined">home</span> Home
+                <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main">
+                        <span className="material-symbols-outlined">home</span>
+                        <span>Home</span>
                     </Link>
-                    <Link href="/seller_main/pesanan" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-600 font-semibold">
-                        <span className="material-symbols-outlined">shopping_bag</span> Pesanan
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/seller_main/pesanan">
+                        <span className="material-symbols-outlined">shopping_bag</span>
+                        <span>Pesanan</span>
                     </Link>
-                    <Link href="/seller_main/produk" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
-                        <span className="material-symbols-outlined">package_2</span> Produk
+                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/produk">
+                        <span className="material-symbols-outlined">package_2</span>
+                        <span>Produk</span>
                     </Link>
                     <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/marketing">
                         <span className="material-symbols-outlined">campaign</span>
@@ -148,102 +148,232 @@ export default function KelolaPesanan() {
                         <span className="material-symbols-outlined">account_balance_wallet</span>
                         <span>Keuangan</span>
                     </Link>
-                <div className="pt-4 mt-4 border-t border-slate-100">
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/pengaturan">
-                        <span className="material-symbols-outlined">settings</span>
-                        <span>Pengaturan</span>
-                    </Link>
+                    <div className="pt-4 mt-4 border-t border-slate-100">
+                        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/pengaturan">
+                            <span className="material-symbols-outlined">settings</span>
+                            <span>Pengaturan</span>
+                        </Link>
+                    </div>
+                </nav>
+                <div className="p-4 shrink-0">
+                    <div className="rounded-xl bg-primary p-4 text-white">
+                        <p className="text-xs font-medium opacity-80 mb-2">Pusat Edukasi</p>
+                        <p className="text-sm font-bold mb-3">Tingkatkan omset toko kamu!</p>
+                        <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-all cursor-pointer">Pelajari Sekarang</button>
+                    </div>
                 </div>
-            </nav>
-        </aside>
+            </aside>
 
-            {/* Main Area */}
+            {/* Main Content Area */}
             <main className="flex-1 ml-64 flex flex-col h-screen min-w-0" style={{ background: "linear-gradient(180deg, #9288f8 0%, #1a1a2e 400px, #15161d 100%)" }}>
-                
-                {/* Header */}
+
+                {/* Topbar / Header */}
                 <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent">
                     <div className="flex items-center flex-1 max-w-2xl">
                         <div className="relative w-full">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input className="w-full pl-12 pr-4 py-3 rounded-full text-sm bg-white shadow-md focus:outline-none" placeholder="Cari Pembeli atau SKU..." type="text" />
+                            <input className="w-full pl-12 pr-4 py-3 border-none rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none" placeholder="Cari Nama Pembeli, No. Resi, atau SKU (Ctrl+K)" type="text" />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <button className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors relative text-white cursor-pointer">
+                            <span className="material-symbols-outlined">notifications</span>
+                            <span className="absolute top-2 right-2 size-4 bg-red-500 border-2 border-[#9288f8] rounded-full text-[10px] flex items-center justify-center font-bold">25</span>
+                        </button>
+                        <button className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white cursor-pointer">
+                            <span className="material-symbols-outlined">mail</span>
+                        </button>
+                        <div className="flex items-center gap-3 pl-4 border-l border-white/20">
+                            <div className="text-right hidden sm:block text-white">
+                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
+                            </div>
+                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                         </div>
                     </div>
                 </header>
 
+                {/* Content Wrapper */}
                 <div className="flex-1 flex flex-col min-h-0">
-                    <div className="shrink-0 px-8 pt-4 pb-4">
-                        <h2 className="text-3xl font-black text-white tracking-tight">Kelola Pesanan</h2>
-                        
-                        {/* Status Tabs */}
-                        <div className="flex border-b border-white/10 overflow-x-auto gap-2 mt-6 no-scrollbar">
+
+                    {/* BAGIAN ATAS (Locked / Tidak Ikut Scroll) */}
+                    <div className="shrink-0 px-8 pt-8 pb-4 z-10">
+                        {/* Page Header */}
+                        <div className="flex justify-between items-end mb-4">
+                            <div>
+                                <Link href="/seller_main" className="flex items-center text-white/70 hover:text-white text-sm font-medium mb-2 transition-colors">
+                                    <span className="material-symbols-outlined text-base mr-1">arrow_back</span> Kembali
+                                </Link>
+                                <h2 className="text-3xl font-black text-white tracking-tight">Kelola Pesanan</h2>
+                                <p className="text-white/80 mt-1 text-sm">Pantau dan proses pesanan masuk agar pelanggan puas sesuai SLA.</p>
+                            </div>
+                            <button className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-all border border-white/20 cursor-pointer">
+                                <span className="material-symbols-outlined text-lg">download</span> Export Data
+                            </button>
+                        </div>
+
+                        {/* Dynamic Status Tabs Terhubung ke State */}
+                        <div className="flex border-b border-white/20 overflow-x-auto gap-2 mb-4">
                             {DAFTAR_TAB.map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`px-5 py-3 text-sm whitespace-nowrap transition-all cursor-pointer ${activeTab === tab 
-                                        ? "font-bold text-white border-b-2 border-white" 
-                                        : "text-white/50 hover:text-white"}`}
+                                    className={`px-5 py-3 text-sm whitespace-nowrap transition-colors cursor-pointer ${activeTab === tab
+                                        ? "font-bold text-white border-b-2 border-white"
+                                        : "font-medium text-white/60 hover:text-white"
+                                        }`}
                                 >
                                     {tab}{getTabCount(tab)}
                                 </button>
                             ))}
                         </div>
+
+                        {/* Bulk Action Bar */}
+                        <div className="bg-white rounded-xl p-4 flex items-center justify-between shadow-md border border-slate-200">
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer accent-primary" />
+                                    <span className="text-sm font-bold text-slate-700 group-hover:text-primary transition-colors">Pilih Semua</span>
+                                </label>
+                                <div className="h-6 w-px bg-slate-200 mx-2"></div>
+                                <span className="text-xs font-medium text-slate-500">2 pesanan dipilih</span>
+                            </div>
+                            <div className="flex gap-3">
+                                <button className="px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
+                                    <span className="material-symbols-outlined text-lg">print</span> Cetak Label Massal
+                                </button>
+                                <button className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
+                                    <span className="material-symbols-outlined text-lg">local_shipping</span> Atur Pengiriman
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Scrollable List */}
-                    <div className="flex-1 overflow-y-auto px-8 pb-12">
+                    {/* BAGIAN BAWAH (Daftar Card Pesanan - Scrollable) */}
+                    <div className="flex-1 overflow-y-auto px-8 pb-12 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+
                         <div className="space-y-4">
+
+                            {/* Jika data kosong berdasarkan tab yang dipilih */}
                             {dataYangDitampilkan.length === 0 ? (
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-16 text-center">
-                                    <span className="material-symbols-outlined text-5xl text-white/20 mb-4">inventory_2</span>
-                                    <h3 className="text-lg font-bold text-white">Kosong</h3>
-                                    <p className="text-white/40 text-sm">Tidak ada pesanan di kategori ini.</p>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center mt-8">
+                                    <span className="material-symbols-outlined text-6xl text-white/30 mb-4">inbox</span>
+                                    <h3 className="text-xl font-bold text-white mb-2">Belum ada pesanan nih!</h3>
+                                    <p className="text-sm text-white/60 max-w-sm">
+                                        Yuk promosikan produkmu di fitur Marketing untuk mendapatkan pesanan baru.
+                                    </p>
                                 </div>
                             ) : (
-                                dataYangDitampilkan.map((order: Pesanan, index: number) => (
-                                    <div key={index} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:border-blue-300 transition-all">
-                                        <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                                            <span className="text-sm font-bold text-slate-800">{order.id}</span>
-                                            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
-                                                ${order.statusUrgensi === 'critical' ? 'bg-red-100 text-red-600' : 
-                                                  order.statusUrgensi === 'warning' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
-                                                {order.batasWaktu}
+                                /* 4. MAPPING DATA YANG SUDAH DI-FILTER */
+                                dataYangDitampilkan.map((order, index) => (
+                                    <div key={index} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                        {/* Header Card */}
+                                        <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-primary cursor-pointer accent-primary" />
+                                                <span className="text-sm font-bold text-slate-800">ID: {order.id}</span>
+                                                <span className="text-xs font-medium text-slate-500">{order.waktuPesanan}</span>
                                             </div>
+
+                                            {/* Visual Urgency Dinamis */}
+                                            {order.statusUrgensi === 'critical' ? (
+                                                <div className="flex items-center gap-1.5 text-red-600 bg-red-100 px-3 py-1 rounded-full">
+                                                    <span className="material-symbols-outlined text-sm animate-pulse">warning</span>
+                                                    <span className="text-xs font-bold">{order.batasWaktu}</span>
+                                                </div>
+                                            ) : order.statusUrgensi === 'warning' ? (
+                                                <div className="flex items-center gap-1.5 text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                                                    <span className="material-symbols-outlined text-sm">schedule</span>
+                                                    <span className="text-xs font-bold">{order.batasWaktu}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-slate-600 bg-slate-200 px-3 py-1 rounded-full">
+                                                    <span className="material-symbols-outlined text-sm">schedule</span>
+                                                    <span className="text-xs font-bold">{order.batasWaktu}</span>
+                                                </div>
+                                            )}
                                         </div>
 
+                                        {/* Body Card */}
                                         <div className="p-6 flex flex-col md:flex-row gap-6">
+                                            {/* Product Info */}
                                             <div className="flex flex-1 gap-4">
-                                                <div className="size-16 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-100 shrink-0">
-                                                    <span className="material-symbols-outlined text-slate-300 text-2xl">{order.iconProduk}</span>
+                                                <div className="size-20 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-slate-400 text-3xl">{order.iconProduk}</span>
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-slate-800 text-sm mb-1">{order.namaProduk}</h4>
-                                                    <p className="text-xs text-slate-400 font-medium">{order.rincian}</p>
-                                                    <p className="text-[11px] font-bold text-blue-600 mt-2">{order.kurir} {order.badgeKurir ? `(${order.badgeKurir})` : ''}</p>
+                                                    <h4 className="font-bold text-slate-800 text-base mb-1">{order.namaProduk}</h4>
+                                                    <p className="text-sm text-slate-500 font-medium">{order.rincian}</p>
                                                 </div>
                                             </div>
-
-                                            <div className="md:w-56 flex flex-col justify-center items-end border-l border-slate-50 pl-6 shrink-0">
-                                                <p className="text-lg font-black text-slate-900 leading-none">{order.total}</p>
-                                                <div className="mt-2 flex items-center gap-2">
-                                                    <span className="text-xs font-semibold text-slate-600">{order.pembeli}</span>
-                                                    <div className="size-6 rounded-full bg-blue-100 text-blue-600 text-[10px] flex items-center justify-center font-bold">{order.inisial}</div>
+                                            {/* Courier Info */}
+                                            <div className="md:w-64 border-l border-slate-100 pl-6 flex flex-col justify-center">
+                                                <p className="text-xs text-slate-500 font-medium mb-1">Kurir Pengiriman:</p>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <p className="font-bold text-slate-800">{order.kurir}</p>
+                                                    {order.badgeKurir && (
+                                                        <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
+                                                            {order.badgeKurir}
+                                                        </span>
+                                                    )}
                                                 </div>
+                                                <button className="text-xs font-bold text-primary hover:underline self-start flex items-center gap-1 cursor-pointer">
+                                                    <span className="material-symbols-outlined text-sm">location_on</span> Lacak Resi
+                                                </button>
                                             </div>
                                         </div>
 
-                                        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex justify-end gap-3">
-                                            <button className={`px-6 py-2 rounded-xl text-xs font-black transition-all active:scale-95
-                                                ${order.tipeTombol === 'success' ? 'bg-emerald-500 text-white shadow-emerald-100' : 
-                                                  order.tipeTombol === 'outline' ? 'border border-slate-200 text-slate-600 bg-white' : 'bg-blue-600 text-white shadow-blue-100'} shadow-lg cursor-pointer`}>
-                                                {order.tombolAksi}
-                                            </button>
+                                        {/* Footer Card */}
+                                        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                                            <div className="flex items-center gap-8">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="size-6 rounded-full bg-slate-300 flex items-center justify-center text-[10px] font-bold text-white">
+                                                        {order.inisial}
+                                                    </div>
+                                                    <span className="text-sm font-medium text-slate-700">
+                                                        Pembeli: <span className="font-bold text-slate-800">{order.pembeli}</span>
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm font-medium text-slate-700">
+                                                    Total: <span className="font-black text-primary text-base">{order.total}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Tombol Aksi Dinamis */}
+                                            {order.tipeTombol === 'success' ? (
+                                                <button className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
+                                                    <span className="material-symbols-outlined text-sm">check_circle</span> {order.tombolAksi}
+                                                </button>
+                                            ) : order.tipeTombol === 'outline' ? (
+                                                <button className="px-6 py-2 bg-white text-slate-700 border border-slate-300 text-sm font-bold rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95 cursor-pointer">
+                                                    {order.tombolAksi}
+                                                </button>
+                                            ) : (
+                                                <button className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer">
+                                                    {order.tombolAksi}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))
                             )}
+
+                            {/* Micro-copy Info Alert (Hanya muncul jika ada pesanan di tab tsb) */}
+                            {dataYangDitampilkan.length > 0 && (
+                                <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                                    <span className="material-symbols-outlined text-blue-500">info</span>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-blue-800">Informasi SLA Pengiriman</h4>
+                                        <p className="text-xs text-blue-600 mt-1 leading-relaxed">
+                                            Harap perhatikan indikator batas waktu. Warna <span className="font-bold text-orange-600">oranye</span> menandakan waktu pengiriman kurang dari 24 jam. Warna <span className="font-bold text-red-600">merah</span> menandakan waktu kurang dari 6 jam untuk menghindari penalti otomatis.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     </div>
+
                 </div>
             </main>
         </div>

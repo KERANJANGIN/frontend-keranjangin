@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 // ────────────────────────────────────────────────────
 // Helper to extract ID from params
@@ -54,7 +54,23 @@ export async function PUT(
     const body = await request.json();
     
     // Extract valid fields you want to allow updating
-    const { name, description, price, stock, category, img_path, product_code, min_quantity, weight, size } = body;
+    const { name, description, price, stock, category, img_path, product_code, min_quantity, weight, size, sold, product_status } = body;
+
+    const ALLOWED_CATEGORIES = [
+        'Fashion', 'Elektronik', 'Home & Living', 'Beauty & Personal Care',
+        'Baby & Kids', 'Sports & Outdoor', 'Automotive', 'Books & Stationery',
+        'Hobbies & Entertainment', 'Food & Beverages'
+    ];
+        
+    const ALLOWED_STATUSES = ['live', 'not_shown', 'action_needed'];
+
+    if (category !== undefined && !ALLOWED_CATEGORIES.includes(category)) {
+        return NextResponse.json({ error: 'Invalid category value' }, { status: 400 });
+    }
+
+    if (product_status !== undefined && !ALLOWED_STATUSES.includes(product_status)) {
+        return NextResponse.json({ error: 'Invalid product_status value' }, { status: 400 });
+    }
 
     // Build the update object dynamically
     const updateData: any = {};
@@ -68,6 +84,8 @@ export async function PUT(
     if (min_quantity !== undefined) updateData.min_quantity = min_quantity;
     if (weight !== undefined) updateData.weight = weight;
     if (size !== undefined) updateData.size = size;
+    if (sold !== undefined) updateData.sold = sold;
+    if (product_status !== undefined) updateData.product_status = product_status;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
