@@ -16,11 +16,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const transactionId = parseInt(id, 10);
+
+    if (isNaN(transactionId)) {
+        return NextResponse.json({ error: 'Invalid transaction ID format (must be an integer)' }, { status: 400 });
+    }
 
     const { data: tx, error } = await supabase
       .from('transactions')
       .select('*')
-      .eq('id', id)
+      .eq('id', transactionId)
       .single();
     if (error) {
       // Supabase returns PGRST116 when single() finds no rows

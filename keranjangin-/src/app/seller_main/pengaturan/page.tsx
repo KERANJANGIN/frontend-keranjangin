@@ -14,23 +14,43 @@ const SETTING_TABS = [
 
 export default function SettingsPage() {
     const [userData, setUserData] = useState<any>(null);
+    const [shopName, setShopName] = useState("");
+    const [shopAddress, setShopAddress] = useState("");
+    const [postalCode, setPostalCode] = useState("");
+    const [bankName, setBankName] = useState("");
+    const [accountNumber, setAccountNumber] = useState("");
+
+    const [couriers, setCouriers] = useState<any[]>([]);
 
     useEffect(() => {
-        const fetchUser = async () => {
+        const fetchUserAndCouriers = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
-                if (data) setUserData(data);
+                const { data } = await supabase.from("users").select("*").eq("id", session.user.id).single();
+                if (data) {
+                    setUserData(data);
+                    setShopName(data.shopName || "");
+                    setShopAddress(data.shopAddress || "");
+                    setPostalCode(data.postalCode || "");
+                    setBankName(data.bankName || "");
+                    setAccountNumber(data.accountNumber || "");
+                    if (data.avatar_url) setLogoPreview(data.avatar_url);
+                }
             }
+
+            const { data: courierData } = await supabase.from("couriers").select("*").order("id", { ascending: true });
+            if (courierData) setCouriers(courierData);
         };
-        fetchUser();
+        fetchUserAndCouriers();
     }, []);
 
-    const [activeTab, setActiveTab] = useState("pengiriman"); // Set default ke Pengiriman untuk preview
+    const [activeTab, setActiveTab] = useState("profil");
     const [storeStatus, setStoreStatus] = useState("aktif");
 
     // State Profil Toko
-    const [logoPreview, setLogoPreview] = useState("https://lh3.googleusercontent.com/aida-public/AB6AXuCC1zmp7YYt6oMDsTdv1bNgxpofyoEuLVBqeQp-WLWWxuCGBXro5gXoPacDjyc8StdsGIVlwRoEr5t7Xak65p2AslTeE34eGi8903dOn73Rf-mO7PLaCLN8Z-2vUEE_8c6-eYnPJ_jIjcMdn94sglqgz27H0DkIuLuI7bU-B_8ViI4gAP6iWS2_kVYpMgc96DNl77_JqmMc0sOcmKeKAmcyDz-iNwONuFY0d435TR9QNZyX-SXPbAHql7w_jiLXRpRy3UBmfLpnq7iW");
+    const [logoPreview, setLogoPreview] = useState("https://ui-avatars.com/api/?background=random&name=Toko");
+    const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,8 +58,50 @@ export default function SettingsPage() {
         if (file && (file.type === "image/png" || file.type === "image/jpeg")) {
             const imageUrl = URL.createObjectURL(file);
             setLogoPreview(imageUrl);
+            setSelectedAvatarFile(file);
         } else {
             alert("Gunakan format PNG atau JPG ya!");
+        }
+    };
+
+    const handleSave = async () => {
+        if (!userData?.id) return;
+        setIsSaving(true);
+        try {
+            let finalAvatarUrl = userData.avatar_url; // Default to existing
+            if (selectedAvatarFile) {
+                const fileExt = selectedAvatarFile.name.split('.').pop();
+                const fileName = `${userData.id}-${Math.random()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from("avatar_img")
+                    .upload(`public/${fileName}`, selectedAvatarFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage.from("avatar_img").getPublicUrl(`public/${fileName}`);
+                finalAvatarUrl = data.publicUrl;
+            }
+
+            const updates = {
+                shopName,
+                shopAddress,
+                postalCode,
+                bankName,
+                accountNumber,
+                avatar_url: finalAvatarUrl
+            };
+
+            const { error } = await supabase.from('users').update(updates).eq('id', userData.id);
+            if (error) throw error;
+
+            alert("Perubahan berhasil disimpan!");
+            setSelectedAvatarFile(null); // Reset file selection after successful upload
+
+            setUserData({ ...userData, ...updates });
+        } catch (error: any) {
+            alert("Gagal menyimpan: " + error.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -133,9 +195,9 @@ export default function SettingsPage() {
                             <h2 className="text-3xl font-black text-white tracking-tight">Pengaturan Toko</h2>
                             <p className="text-white/80 mt-1 text-sm">Pusat kontrol operasional, keamanan, dan informasi bisnis Anda.</p>
                         </div>
-                        <button className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-xl text-sm font-bold shadow-lg hover:bg-slate-50 active:scale-95 transition-all cursor-pointer whitespace-nowrap">
+                        <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-xl text-sm font-bold shadow-lg hover:bg-slate-50 active:scale-95 transition-all cursor-pointer whitespace-nowrap disabled:opacity-50">
                             <span className="material-symbols-outlined text-lg">save</span>
-                            Simpan Perubahan
+                            {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
                         </button>
                     </div>
 
@@ -224,16 +286,16 @@ export default function SettingsPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-sm font-bold text-slate-700">Nama Toko <span className="text-red-500">*</span></label>
-                                                <input type="text" defaultValue="Indo Tech Store" maxLength={30} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                                                <input type="text" value={shopName} onChange={(e) => setShopName(e.target.value)} maxLength={30} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
                                             </div>
                                             <div className="flex flex-col gap-2">
-                                                <label className="text-sm font-bold text-slate-700">Slogan</label>
-                                                <input type="text" defaultValue="Solusi Gadget Tercepat" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                                                <label className="text-sm font-bold text-slate-700">Kode Pos</label>
+                                                <input type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="Contoh: 16424" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
                                             </div>
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-bold text-slate-700">Deskripsi Toko</label>
-                                            <textarea rows={4} defaultValue="Toko resmi penyedia hardware PC dan aksesoris gaming terbaik di Indonesia." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
+                                            <label className="text-sm font-bold text-slate-700">Alamat Toko</label>
+                                            <textarea rows={4} value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} placeholder="Detail alamat toko atau gudang pengiriman..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -279,65 +341,21 @@ export default function SettingsPage() {
                                             <h4 className="font-bold text-slate-800 mb-4">Pilih Jasa Kirim Aktif</h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                                {/* Kurir 1 */}
-                                                <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-12 h-8 bg-slate-100 rounded flex items-center justify-center text-[10px] font-black text-red-600">J&T</div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-800">J&T Express</p>
-                                                            <p className="text-[10px] text-slate-500">Reguler & Hemat</p>
+                                                {couriers.map((courier: any) => (
+                                                    <div key={courier.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-12 h-8 bg-slate-100 rounded flex items-center justify-center text-[10px] font-black text-slate-800 uppercase">{courier.courier_name.substring(0, 4)}</div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-slate-800">{courier.courier_name}</p>
+                                                                <p className="text-[10px] text-slate-500">Reguler & Tersedia</p>
+                                                            </div>
                                                         </div>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" defaultChecked={true} />
+                                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                        </label>
                                                     </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                                    </label>
-                                                </div>
-
-                                                {/* Kurir 2 */}
-                                                <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-12 h-8 bg-slate-100 rounded flex items-center justify-center text-[10px] font-black text-red-500">SiCepat</div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-800">SiCepat</p>
-                                                            <p className="text-[10px] text-slate-500">Reguler, BEST, Halu</p>
-                                                        </div>
-                                                    </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                                    </label>
-                                                </div>
-
-                                                {/* Kurir 3 (Instant) */}
-                                                <div className="flex items-center justify-between p-4 border border-emerald-200 bg-emerald-50/50 rounded-xl">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-12 h-8 bg-emerald-100 rounded flex items-center justify-center text-[10px] font-black text-emerald-700">GRAB</div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-800 flex items-center gap-1">GrabExpress <span className="material-symbols-outlined text-[14px] text-emerald-600">bolt</span></p>
-                                                            <p className="text-[10px] text-emerald-700 font-medium">Instant & Same-Day (Max 15:00)</p>
-                                                        </div>
-                                                    </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                                    </label>
-                                                </div>
-
-                                                {/* Kurir 4 (Non-aktif) */}
-                                                <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl opacity-60 hover:opacity-100 transition-opacity">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-12 h-8 bg-slate-100 rounded flex items-center justify-center text-[10px] font-black text-blue-700">JNE</div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-800">JNE</p>
-                                                            <p className="text-[10px] text-slate-500">Reguler & YES</p>
-                                                        </div>
-                                                    </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" className="sr-only peer" />
-                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                                    </label>
-                                                </div>
+                                                ))}
                                             </div>
                                         </div>
 
@@ -361,16 +379,17 @@ export default function SettingsPage() {
                                                 <button className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"><span className="material-symbols-outlined text-[14px]">add</span> Tambah Bank</button>
                                             </div>
                                             <div className="border border-emerald-200 bg-emerald-50/30 rounded-xl p-5 flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-14 h-10 bg-white border border-slate-200 rounded flex items-center justify-center font-black text-blue-800 italic shadow-sm">BCA</div>
-                                                    <div>
-                                                        <h4 className="font-bold text-slate-800 tracking-wider">2506 •••• ••21</h4>
-                                                        <p className="text-xs text-slate-600 mt-0.5">A.N ABDIEL DEANDRA E.</p>
+                                                <div className="flex-1 mr-6">
+                                                    <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Cek Rekening Bank</label>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Nama Bank (BCA, Mandiri...)" className="w-full px-4 py-3 bg-white border border-emerald-300/50 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none placeholder:text-slate-400" />
+                                                        <input type="text" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="Nomor Rekening" className="w-full px-4 py-3 bg-white border border-emerald-300/50 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none placeholder:text-slate-400 font-mono tracking-widest" />
                                                     </div>
+                                                    <p className="text-xs text-emerald-800 mt-3 font-semibold bg-emerald-100/50 inline-block px-3 py-1.5 rounded-lg border border-emerald-200">A.N {userData?.full_name?.toUpperCase() || "NAMA PEMILIK"}</p>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-2">
+                                                <div className="flex flex-col items-end gap-2 shrink-0 border-l border-emerald-200 pl-6 py-2">
                                                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2.5 py-1 rounded flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">verified</span> Terverifikasi</span>
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rekening Utama</span>
+                                                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider opacity-60">Rekening Utama</span>
                                                 </div>
                                             </div>
                                         </div>
