@@ -167,7 +167,7 @@ export default function ProdukPage() {
               </div>
               <div
                 className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer"
-                style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}
+                style={{ backgroundImage: `url('${userData?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}
               ></div>
             </div>
           </div>

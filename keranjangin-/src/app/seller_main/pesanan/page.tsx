@@ -4,108 +4,78 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/app/lib/supabase";
 import Link from "next/link";
 
-// 1. DATA DUMMY PESANAN (Memiliki properti statusTab untuk filtering)
-const pesananData = [
-    {
-        id: "#ORD-99281",
-        statusTab: "Perlu Dikirim",
-        waktuPesanan: "20 Mar, 14:10",
-        statusUrgensi: "warning",
-        batasWaktu: "Kirim sblm: 22 Mar",
-        iconProduk: "mouse",
-        namaProduk: "Mouse Gaming Logitech G502",
-        rincian: "1 Unit x Rp 850.000",
-        kurir: "J&T Reg",
-        badgeKurir: null,
-        inisial: "AD",
-        pembeli: "Abdiel Deandra",
-        total: "Rp 855.000",
-        tombolAksi: "Atur Kirim",
-        tipeTombol: "primary",
-    },
-    {
-        id: "#ORD-99275",
-        statusTab: "Perlu Dikirim",
-        waktuPesanan: "20 Mar, 13:05",
-        statusUrgensi: "critical",
-        batasWaktu: "Kirim sblm: Hari ini, 16:00",
-        iconProduk: "keyboard",
-        namaProduk: "Mechanical Keyboard K6",
-        rincian: "1 Unit x Rp 1.200.000",
-        kurir: "GoSend",
-        badgeKurir: "Instant",
-        inisial: "VS",
-        pembeli: "Vania S.",
-        total: "Rp 1.200.000",
-        tombolAksi: "Siapkan",
-        tipeTombol: "success",
-    },
-    {
-        id: "#ORD-88102",
-        statusTab: "Belum Bayar",
-        waktuPesanan: "21 Mar, 09:15",
-        statusUrgensi: "normal",
-        batasWaktu: "Bayar sblm: 22 Mar",
-        iconProduk: "desktop_windows",
-        namaProduk: "Monitor Stand Riser Kayu Solid",
-        rincian: "2 Unit x Rp 150.000",
-        kurir: "SiCepat Halu",
-        badgeKurir: null,
-        inisial: "BS",
-        pembeli: "Budi Santoso",
-        total: "Rp 315.000",
-        tombolAksi: "Ingatkan Pembeli",
-        tipeTombol: "outline",
-    },
-    {
-        id: "#ORD-77541",
-        statusTab: "Dikirim",
-        waktuPesanan: "18 Mar, 10:20",
-        statusUrgensi: "normal",
-        batasWaktu: "Estimasi Tiba: 21 Mar",
-        iconProduk: "watch",
-        namaProduk: "Smartwatch Active Pro v2",
-        rincian: "1 Unit x Rp 850.000",
-        kurir: "JNE YES",
-        badgeKurir: "Next Day",
-        inisial: "RA",
-        pembeli: "Reza Aditya",
-        total: "Rp 875.000",
-        tombolAksi: "Lacak Pesanan",
-        tipeTombol: "primary",
-    }
-];
-
-// Daftar semua tab yang tersedia
+// Tab names for filtering
 const DAFTAR_TAB = ["Semua", "Belum Bayar", "Perlu Dikirim", "Dikirim", "Selesai", "Dibatalkan", "Retur"];
 
 export default function KelolaPesanan() {
     const [userData, setUserData] = useState<any>(null);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchUser = async () => {
+        const fetchUserAndOrders = async () => {
+            setIsLoading(true);
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                const { data } = await supabase.from("users").select("*").eq("id", session.user.id).single();
-                if (data) setUserData(data);
+                const { data: user } = await supabase.from("users").select("*").eq("id", session.user.id).single();
+                if (user) {
+                    setUserData(user);
+                    
+                    // Fetch real orders for this seller
+                    const response = await fetch(`/api/orders?seller=${user.id}`);
+                    const data = await response.json();
+                    if (Array.isArray(data)) {
+                        setOrders(data);
+                    }
+                }
             }
+            setIsLoading(false);
         };
-        fetchUser();
+        fetchUserAndOrders();
     }, []);
 
-    // 2. STATE UNTUK TAB AKTIF
     const [activeTab, setActiveTab] = useState("Perlu Dikirim");
 
-    // 3. FUNGSI FILTER DATA
-    const dataYangDitampilkan = pesananData.filter((order) => {
+    const handleUpdateStatus = async (orderId: number, newStatus: string) => {
+        try {
+            const response = await fetch(`/api/orders/${orderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_status: newStatus })
+            });
+
+            if (response.ok) {
+                // Update local state
+                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: newStatus } : o));
+            } else {
+                alert("Gagal memperbarui status order.");
+            }
+        } catch (error) {
+            console.error("Update status error:", error);
+        }
+    };
+
+    // Mapping function to categorize orders into tabs
+    const getStatusTab = (order: any) => {
+        const txStatus = order.transaction?.status;
+        const ordStatus = order.order_status;
+
+        if (txStatus === 'waiting_payment') return "Belum Bayar";
+        if (ordStatus === 'action_needed' && txStatus === 'paid') return "Perlu Dikirim";
+        if (ordStatus === 'confirmed') return "Dikirim";
+        if (ordStatus === 'canceled') return "Dibatalkan";
+        // Default mappings based on your actual logic or fallback
+        return "Semua";
+    };
+
+    const dataYangDitampilkan = orders.filter((order) => {
         if (activeTab === "Semua") return true;
-        return order.statusTab === activeTab;
+        return getStatusTab(order) === activeTab;
     });
 
-    // Fungsi pembantu untuk menghitung jumlah pesanan per tab
-    const getTabCount = (tabName) => {
+    const getTabCount = (tabName: string) => {
         if (tabName === "Semua") return "";
-        const count = pesananData.filter(order => order.statusTab === tabName).length;
+        const count = orders.filter(order => getStatusTab(order) === tabName).length;
         return count > 0 ? ` (${count})` : "";
     };
 
@@ -256,9 +226,9 @@ export default function KelolaPesanan() {
 
                             {/* Jika data kosong berdasarkan tab yang dipilih */}
                             {dataYangDitampilkan.length === 0 ? (
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center mt-8">
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center mt-8 text-white">
                                     <span className="material-symbols-outlined text-6xl text-white/30 mb-4">inbox</span>
-                                    <h3 className="text-xl font-bold text-white mb-2">Belum ada pesanan nih!</h3>
+                                    <h3 className="text-xl font-bold mb-2">Belum ada pesanan nih!</h3>
                                     <p className="text-sm text-white/60 max-w-sm">
                                         Yuk promosikan produkmu di fitur Marketing untuk mendapatkan pesanan baru.
                                     </p>
@@ -271,51 +241,38 @@ export default function KelolaPesanan() {
                                         <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                 <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-primary cursor-pointer accent-primary" />
-                                                <span className="text-sm font-bold text-slate-800">ID: {order.id}</span>
-                                                <span className="text-xs font-medium text-slate-500">{order.waktuPesanan}</span>
+                                                <span className="text-sm font-bold text-slate-800">ID: #ORD-{order.id}</span>
+                                                <span className="text-xs font-medium text-slate-500">{new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
 
-                                            {/* Visual Urgency Dinamis */}
-                                            {order.statusUrgensi === 'critical' ? (
-                                                <div className="flex items-center gap-1.5 text-red-600 bg-red-100 px-3 py-1 rounded-full">
-                                                    <span className="material-symbols-outlined text-sm animate-pulse">warning</span>
-                                                    <span className="text-xs font-bold">{order.batasWaktu}</span>
-                                                </div>
-                                            ) : order.statusUrgensi === 'warning' ? (
-                                                <div className="flex items-center gap-1.5 text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
-                                                    <span className="material-symbols-outlined text-sm">schedule</span>
-                                                    <span className="text-xs font-bold">{order.batasWaktu}</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1.5 text-slate-600 bg-slate-200 px-3 py-1 rounded-full">
-                                                    <span className="material-symbols-outlined text-sm">schedule</span>
-                                                    <span className="text-xs font-bold">{order.batasWaktu}</span>
-                                                </div>
-                                            )}
+                                            {/* Status Badge */}
+                                            <div className="flex items-center gap-1.5 text-slate-600 bg-slate-200 px-3 py-1 rounded-full">
+                                                <span className="material-symbols-outlined text-sm">schedule</span>
+                                                <span className="text-xs font-bold">{order.transaction?.status === 'waiting_payment' ? 'Menunggu Pembayaran' : 'Proses'}</span>
+                                            </div>
                                         </div>
 
                                         {/* Body Card */}
                                         <div className="p-6 flex flex-col md:flex-row gap-6">
                                             {/* Product Info */}
                                             <div className="flex flex-1 gap-4">
-                                                <div className="size-20 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-slate-400 text-3xl">{order.iconProduk}</span>
+                                                <div className="size-20 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                                                    {order.item?.img_path ? (
+                                                        <img src={order.item.img_path} className="w-full h-full object-cover" alt={order.item.name} />
+                                                    ) : (
+                                                        <span className="material-symbols-outlined text-slate-400 text-3xl">package</span>
+                                                    )}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-slate-800 text-base mb-1">{order.namaProduk}</h4>
-                                                    <p className="text-sm text-slate-500 font-medium">{order.rincian}</p>
+                                                    <h4 className="font-bold text-slate-800 text-base mb-1">{order.item?.name || "Produk Tidak Ditemukan"}</h4>
+                                                    <p className="text-sm text-slate-500 font-medium">{order.quantity} Unit x Rp {order.price.toLocaleString('id-ID')}</p>
                                                 </div>
                                             </div>
                                             {/* Courier Info */}
                                             <div className="md:w-64 border-l border-slate-100 pl-6 flex flex-col justify-center">
                                                 <p className="text-xs text-slate-500 font-medium mb-1">Kurir Pengiriman:</p>
                                                 <div className="flex items-center gap-2 mb-2">
-                                                    <p className="font-bold text-slate-800">{order.kurir}</p>
-                                                    {order.badgeKurir && (
-                                                        <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase">
-                                                            {order.badgeKurir}
-                                                        </span>
-                                                    )}
+                                                    <p className="font-bold text-slate-800">Reguler (ID: {order.courier})</p>
                                                 </div>
                                                 <button className="text-xs font-bold text-primary hover:underline self-start flex items-center gap-1 cursor-pointer">
                                                     <span className="material-symbols-outlined text-sm">location_on</span> Lacak Resi
@@ -327,32 +284,52 @@ export default function KelolaPesanan() {
                                         <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
                                             <div className="flex items-center gap-8">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="size-6 rounded-full bg-slate-300 flex items-center justify-center text-[10px] font-bold text-white">
-                                                        {order.inisial}
+                                                    <div className="size-6 rounded-full bg-slate-300 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">
+                                                        {order.buyer?.avatarUrl ? (
+                                                            <img src={order.buyer.avatarUrl} className="w-full h-full object-cover" alt="Buyer" />
+                                                        ) : (
+                                                            order.buyer?.full_name?.substring(0, 1) || "?"
+                                                        )}
                                                     </div>
                                                     <span className="text-sm font-medium text-slate-700">
-                                                        Pembeli: <span className="font-bold text-slate-800">{order.pembeli}</span>
+                                                        Pembeli: <span className="font-bold text-slate-800">{order.buyer?.full_name || "Pembeli Umum"}</span>
                                                     </span>
                                                 </div>
                                                 <div className="text-sm font-medium text-slate-700">
-                                                    Total: <span className="font-black text-primary text-base">{order.total}</span>
+                                                    Total: <span className="font-black text-primary text-base">Rp {(order.price * order.quantity).toLocaleString('id-ID')}</span>
                                                 </div>
                                             </div>
 
-                                            {/* Tombol Aksi Dinamis */}
-                                            {order.tipeTombol === 'success' ? (
-                                                <button className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
-                                                    <span className="material-symbols-outlined text-sm">check_circle</span> {order.tombolAksi}
-                                                </button>
-                                            ) : order.tipeTombol === 'outline' ? (
-                                                <button className="px-6 py-2 bg-white text-slate-700 border border-slate-300 text-sm font-bold rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95 cursor-pointer">
-                                                    {order.tombolAksi}
-                                                </button>
-                                            ) : (
-                                                <button className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-all active:scale-95 cursor-pointer">
-                                                    {order.tombolAksi}
-                                                </button>
-                                            )}
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2">
+                                                {order.transaction?.status === 'paid' && order.order_status === 'action_needed' && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(order.id, 'canceled')}
+                                                            className="px-4 py-2 border border-red-200 text-red-600 text-sm font-bold rounded-lg hover:bg-red-50 transition-all cursor-pointer"
+                                                        >
+                                                            Batalkan
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus(order.id, 'confirmed')}
+                                                            className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                                                        >
+                                                            <span className="material-symbols-outlined text-sm">check_circle</span> Konfirmasi
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {order.order_status === 'confirmed' && (
+                                                    <button className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
+                                                        <span className="material-symbols-outlined text-sm">local_shipping</span> Atur Kirim
+                                                    </button>
+                                                )}
+                                                {order.order_status === 'canceled' && (
+                                                    <span className="text-red-500 font-bold text-sm italic">Dibatalkan</span>
+                                                )}
+                                                {order.transaction?.status === 'waiting_payment' && (
+                                                    <span className="text-slate-400 font-bold text-sm italic">Menunggu Pembayaran...</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))

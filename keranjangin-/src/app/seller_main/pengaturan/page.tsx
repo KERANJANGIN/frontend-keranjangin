@@ -34,7 +34,7 @@ export default function SettingsPage() {
                     setPostalCode(data.postalCode || "");
                     setBankName(data.bankName || "");
                     setAccountNumber(data.accountNumber || "");
-                    if (data.avatar_url) setLogoPreview(data.avatar_url);
+                    if (data.avatarUrl) setLogoPreview(data.avatarUrl);
                 }
             }
 
@@ -68,7 +68,7 @@ export default function SettingsPage() {
         if (!userData?.id) return;
         setIsSaving(true);
         try {
-            let finalAvatarUrl = userData.avatar_url; // Default to existing
+            let finalAvatarUrl = userData.avatarUrl; // Default to existing
             if (selectedAvatarFile) {
                 const fileExt = selectedAvatarFile.name.split('.').pop();
                 const fileName = `${userData.id}-${Math.random()}.${fileExt}`;
@@ -88,7 +88,7 @@ export default function SettingsPage() {
                 postalCode,
                 bankName,
                 accountNumber,
-                avatar_url: finalAvatarUrl
+                avatarUrl: finalAvatarUrl
             };
 
             const { error } = await supabase.from('users').update(updates).eq('id', userData.id);
@@ -182,7 +182,7 @@ export default function SettingsPage() {
                                 <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
                                 <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
                             </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
+                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatarUrl || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                         </div>
                     </div>
                 </header>
