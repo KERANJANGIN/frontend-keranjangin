@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./seller.css";
 import SellerAuthGuard from "./SellerAuthGuard";
+import SellerSidebar from "./SellerSidebar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,9 +31,12 @@ export default function SellerLayout({
       
       {/* Layout Konten Seller */}
       <SellerAuthGuard>
-        <main>
-          {children}
-        </main>
+        <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden">
+          <SellerSidebar />
+          <div className="flex-1 ml-64 flex flex-col h-screen overflow-hidden" style={{ background: "linear-gradient(180deg, #9288f8 0%, #1a1a2e 400px, #15161d 100%)" }}>
+            {children}
+          </div>
+        </div>
       </SellerAuthGuard>
     </div>
   );

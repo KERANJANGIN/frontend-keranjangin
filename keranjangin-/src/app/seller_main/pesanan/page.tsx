@@ -80,88 +80,32 @@ export default function KelolaPesanan() {
     };
 
     return (
-        <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden">
-
-            {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col z-50">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="size-10 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
-                        <img src="/LOGO.jpeg" alt="Keranjangin Logo" className="w-full h-full object-contain" />
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-lg leading-tight">Seller Center</h1>
-                        <p className="text-[10px] uppercase tracking-wider text-primary font-bold">Powered by Keranjangin</p>
+        <>
+            {/* Topbar / Header */}
+            <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent">
+                <div className="flex items-center flex-1 max-w-2xl">
+                    <div className="relative w-full">
+                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <input className="w-full pl-12 pr-4 py-3 border-none rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none" placeholder="Cari Nama Pembeli, No. Resi, atau SKU (Ctrl+K)" type="text" />
                     </div>
                 </div>
-                <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main">
-                        <span className="material-symbols-outlined">home</span>
-                        <span>Home</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/seller_main/pesanan">
-                        <span className="material-symbols-outlined">shopping_bag</span>
-                        <span>Pesanan</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/produk">
-                        <span className="material-symbols-outlined">package_2</span>
-                        <span>Produk</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/marketing">
-                        <span className="material-symbols-outlined">campaign</span>
-                        <span>Marketing</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/analytics">
-                        <span className="material-symbols-outlined">analytics</span>
-                        <span>Analytics</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/keuangan">
-                        <span className="material-symbols-outlined">account_balance_wallet</span>
-                        <span>Keuangan</span>
-                    </Link>
-                    <div className="pt-4 mt-4 border-t border-slate-100">
-                        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-50 transition-colors" href="/seller_main/pengaturan">
-                            <span className="material-symbols-outlined">settings</span>
-                            <span>Pengaturan</span>
-                        </Link>
-                    </div>
-                </nav>
-                <div className="p-4 shrink-0">
-                    <div className="rounded-xl bg-primary p-4 text-white">
-                        <p className="text-xs font-medium opacity-80 mb-2">Pusat Edukasi</p>
-                        <p className="text-sm font-bold mb-3">Tingkatkan omset toko kamu!</p>
-                        <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-all cursor-pointer">Pelajari Sekarang</button>
+                <div className="flex items-center gap-6">
+                    <button className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors relative text-white cursor-pointer">
+                        <span className="material-symbols-outlined">notifications</span>
+                        <span className="absolute top-2 right-2 size-4 bg-red-500 border-2 border-[#9288f8] rounded-full text-[10px] flex items-center justify-center font-bold">25</span>
+                    </button>
+                    <button className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white cursor-pointer">
+                        <span className="material-symbols-outlined">mail</span>
+                    </button>
+                    <div className="flex items-center gap-3 pl-4 border-l border-white/20">
+                        <div className="text-right hidden sm:block text-white">
+                            <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                            <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
+                        </div>
+                        <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                     </div>
                 </div>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className="flex-1 ml-64 flex flex-col h-screen min-w-0" style={{ background: "linear-gradient(180deg, #9288f8 0%, #1a1a2e 400px, #15161d 100%)" }}>
-
-                {/* Topbar / Header */}
-                <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent">
-                    <div className="flex items-center flex-1 max-w-2xl">
-                        <div className="relative w-full">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input className="w-full pl-12 pr-4 py-3 border-none rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none" placeholder="Cari Nama Pembeli, No. Resi, atau SKU (Ctrl+K)" type="text" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <button className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors relative text-white cursor-pointer">
-                            <span className="material-symbols-outlined">notifications</span>
-                            <span className="absolute top-2 right-2 size-4 bg-red-500 border-2 border-[#9288f8] rounded-full text-[10px] flex items-center justify-center font-bold">25</span>
-                        </button>
-                        <button className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white cursor-pointer">
-                            <span className="material-symbols-outlined">mail</span>
-                        </button>
-                        <div className="flex items-center gap-3 pl-4 border-l border-white/20">
-                            <div className="text-right hidden sm:block text-white">
-                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
-                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
-                            </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50 shadow-md cursor-pointer" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
-                        </div>
-                    </div>
-                </header>
+            </header>
 
                 {/* Content Wrapper */}
                 <div className="flex-1 flex flex-col min-h-0">
@@ -352,7 +296,6 @@ export default function KelolaPesanan() {
                     </div>
 
                 </div>
-            </main>
-        </div>
+            </>
     );
 }

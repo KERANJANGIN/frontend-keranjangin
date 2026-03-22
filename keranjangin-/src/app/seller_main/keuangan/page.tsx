@@ -72,83 +72,26 @@ export default function KeuanganPage() {
     const [withdrawStep, setWithdrawStep] = useState(1); // 1: Input Nominal, 2: PIN
 
     return (
-        <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden bg-[#1e1b4b]">
-
-            {/* SIDEBAR (Locked) */}
-            <aside className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col z-50">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="size-10 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
-                        <img src="/LOGO.jpeg" alt="Keranjangin Logo" className="w-full h-full object-contain" />
+        <>
+            {/* HEADER */}
+            <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent border-b border-white/10">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-black text-white tracking-tight">Keuangan & Saldo</h2>
+                </div>
+                <div className="flex items-center gap-6">
+                    <div className="relative hidden md:block">
+                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <input className="pl-12 pr-4 py-2 rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none w-64 text-slate-800" placeholder="Cari Transaksi..." type="text" />
                     </div>
-                    <div>
-                        <h1 className="font-bold text-lg leading-tight">Seller Center</h1>
-                        <p className="text-[10px] uppercase tracking-wider text-primary font-bold">Powered by Keranjangin</p>
+                    <div className="flex items-center gap-3">
+                        <div className="text-right hidden sm:block text-white">
+                            <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                            <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
+                        </div>
+                        <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                     </div>
                 </div>
-                <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main">
-                        <span className="material-symbols-outlined">home</span>
-                        <span>Home</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pesanan">
-                        <span className="material-symbols-outlined">shopping_bag</span>
-                        <span>Pesanan</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/produk">
-                        <span className="material-symbols-outlined">package_2</span>
-                        <span>Produk</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/marketing">
-                        <span className="material-symbols-outlined">campaign</span>
-                        <span>Marketing</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/analytics">
-                        <span className="material-symbols-outlined">analytics</span>
-                        <span>Analytics</span>
-                    </Link>
-                    {/* Menu Keuangan Aktif */}
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/seller_main/keuangan">
-                        <span className="material-symbols-outlined">account_balance_wallet</span>
-                        <span>Keuangan</span>
-                    </Link>
-                    <div className="pt-4 mt-4 border-t border-slate-100">
-                        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pengaturan">
-                            <span className="material-symbols-outlined">settings</span>
-                            <span>Pengaturan</span>
-                        </Link>
-                    </div>
-                </nav>
-                <div className="p-4 shrink-0">
-                    <div className="rounded-xl bg-primary p-4 text-white">
-                        <p className="text-xs font-medium opacity-80 mb-2">Pusat Edukasi</p>
-                        <p className="text-sm font-bold mb-3">Tingkatkan omset toko kamu!</p>
-                        <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-all cursor-pointer">Pelajari Sekarang</button>
-                    </div>
-                </div>
-            </aside>
-
-            {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col ml-64 min-w-0 h-screen" style={{ background: "linear-gradient(180deg, #9288f8 0%, #1a1a2e 400px, #15161d 100%)" }}>
-
-                {/* HEADER */}
-                <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent border-b border-white/10">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-2xl font-black text-white tracking-tight">Keuangan & Saldo</h2>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="relative hidden md:block">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input className="pl-12 pr-4 py-2 rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none w-64 text-slate-800" placeholder="Cari Transaksi..." type="text" />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="text-right hidden sm:block text-white">
-                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
-                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
-                            </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
-                        </div>
-                    </div>
-                </header>
+            </header>
 
                 {/* SCROLLABLE DASHBOARD CONTENT */}
                 <main className="flex-1 overflow-y-auto p-8 pb-12 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
@@ -308,114 +251,6 @@ export default function KeuanganPage() {
                         </div>
                     </div>
                 </main>
-            </div>
-
-            {/* --- MODAL TARIK DANA (Simulasi) --- */}
-            {showWithdrawModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-
-                        {/* Modal Header */}
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                            <h3 className="font-black text-lg text-slate-800">Tarik Dana Penjualan</h3>
-                            <button onClick={() => { setShowWithdrawModal(false); setWithdrawStep(1); }} className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-
-                        {/* Modal Body Step 1: Input Nominal */}
-                        {withdrawStep === 1 && (
-                            <div className="p-6">
-                                <div className="mb-6">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tujuan Pencairan</p>
-                                    <div className="flex items-center justify-between border border-slate-200 rounded-xl p-3 bg-slate-50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-6 bg-white border border-slate-200 rounded flex items-center justify-center"><span className="text-[9px] font-black text-blue-800 italic">BCA</span></div>
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-800 leading-tight">**** 1234</p>
-                                                <p className="text-[10px] text-slate-500">Abdiel Deandra</p>
-                                            </div>
-                                        </div>
-                                        <span className="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <div className="flex justify-between items-end mb-2">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Nominal Penarikan</p>
-                                        <p className="text-[10px] text-primary font-bold cursor-pointer hover:underline">Tarik Semua</p>
-                                    </div>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-black text-slate-400">Rp</span>
-                                        <input type="number" placeholder="0" className="w-full pl-12 pr-4 py-4 text-2xl font-black text-slate-800 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-2">Saldo Aktif: <span className="font-bold text-slate-700">Rp 15.250.000</span></p>
-                                </div>
-
-                                {/* Transparency in Fees Box */}
-                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8">
-                                    <div className="flex justify-between items-center text-xs mb-1">
-                                        <span className="text-slate-600">Nominal Ditarik</span>
-                                        <span className="font-bold text-slate-800">Rp 1.000.000</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs mb-2 pb-2 border-b border-blue-200/50">
-                                        <span className="text-slate-600 flex items-center gap-1">Biaya Admin Bank <span className="material-symbols-outlined text-[12px] text-slate-400">info</span></span>
-                                        <span className="font-bold text-slate-800">- Rp 6.500</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="font-bold text-blue-900">Total Diterima</span>
-                                        <span className="font-black text-emerald-600">Rp 993.500</span>
-                                    </div>
-                                </div>
-
-                                <button onClick={() => setWithdrawStep(2)} className="w-full py-3.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 cursor-pointer">
-                                    Lanjut Penarikan
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Modal Body Step 2: PIN Verification (Scrambled Numpad Simulation) */}
-                        {withdrawStep === 2 && (
-                            <div className="p-6 flex flex-col items-center">
-                                <div className="size-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 mb-4">
-                                    <span className="material-symbols-outlined text-3xl">lock</span>
-                                </div>
-                                <h4 className="text-lg font-black text-slate-800 mb-1">Masukkan PIN Saldo</h4>
-                                <p className="text-xs text-slate-500 mb-6 text-center">Demi keamanan, masukkan 6 digit PIN Anda untuk memproses penarikan ini.</p>
-
-                                {/* Visual PIN Dots */}
-                                <div className="flex gap-3 mb-8">
-                                    {[1, 2, 3, 4, 5, 6].map(i => (
-                                        <div key={i} className={`size-4 rounded-full border-2 ${i <= 3 ? 'bg-slate-800 border-slate-800' : 'border-slate-300'}`}></div>
-                                    ))}
-                                </div>
-
-                                {/* Scrambled Numpad UI */}
-                                <div className="grid grid-cols-3 gap-3 w-full max-w-[240px] mb-6">
-                                    {[7, 2, 9, 4, 1, 8, 3, 6, 5].map(num => (
-                                        <button key={num} className="py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xl font-bold text-slate-700 transition-colors cursor-pointer">
-                                            {num}
-                                        </button>
-                                    ))}
-                                    <button className="py-3 text-slate-400 flex items-center justify-center cursor-pointer hover:bg-slate-50 rounded-xl"><span className="font-bold text-xs uppercase">Lupa</span></button>
-                                    <button className="py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xl font-bold text-slate-700 transition-colors cursor-pointer">0</button>
-                                    <button className="py-3 text-slate-400 flex items-center justify-center cursor-pointer hover:bg-slate-50 rounded-xl"><span className="material-symbols-outlined">backspace</span></button>
-                                </div>
-
-                                <div className="flex gap-3 w-full mt-2">
-                                    <button onClick={() => setWithdrawStep(1)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors cursor-pointer">
-                                        Kembali
-                                    </button>
-                                    <button onClick={() => { setShowWithdrawModal(false); setWithdrawStep(1); alert("Dana berhasil diproses ke Bank!"); }} className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer">
-                                        Konfirmasi
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-        </div>
+            </>
     );
 }

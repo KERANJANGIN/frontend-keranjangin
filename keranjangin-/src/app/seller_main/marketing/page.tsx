@@ -60,83 +60,26 @@ export default function MarketingPage() {
     const [showAlert, setShowAlert] = useState(true);
 
     return (
-        <div className="flex h-screen w-full font-display text-slate-900 overflow-hidden bg-[#1e1b4b]">
-
-            {/* SIDEBAR (Locked) */}
-            <aside className="w-64 bg-white border-r border-slate-200 fixed h-full flex flex-col z-50">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="size-10 flex items-center justify-center rounded-xl overflow-hidden shrink-0">
-                        <img src="/LOGO.jpeg" alt="Keranjangin Logo" className="w-full h-full object-contain" />
+        <>
+            {/* HEADER */}
+            <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent border-b border-white/10">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-black text-white tracking-tight">Marketing Center</h2>
+                </div>
+                <div className="flex items-center gap-6">
+                    <div className="relative hidden md:block">
+                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <input className="pl-12 pr-4 py-2 rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none w-64 text-slate-800" placeholder="Cari Promo... (Ctrl + K)" type="text" />
                     </div>
-                    <div>
-                        <h1 className="font-bold text-lg leading-tight">Seller Center</h1>
-                        <p className="text-[10px] uppercase tracking-wider text-primary font-bold">Powered by Keranjangin</p>
+                    <div className="flex items-center gap-3">
+                        <div className="text-right hidden sm:block text-white">
+                            <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
+                            <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
+                        </div>
+                        <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
                     </div>
                 </div>
-                <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main">
-                        <span className="material-symbols-outlined">home</span>
-                        <span>Home</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pesanan">
-                        <span className="material-symbols-outlined">shopping_bag</span>
-                        <span>Pesanan</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/produk">
-                        <span className="material-symbols-outlined">package_2</span>
-                        <span>Produk</span>
-                    </Link>
-                    {/* Menu Marketing Aktif */}
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="/seller_main/marketing">
-                        <span className="material-symbols-outlined">campaign</span>
-                        <span>Marketing</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/analytics">
-                        <span className="material-symbols-outlined">analytics</span>
-                        <span>Analytics</span>
-                    </Link>
-                    <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/keuangan">
-                        <span className="material-symbols-outlined">account_balance_wallet</span>
-                        <span>Keuangan</span>
-                    </Link>
-                    <div className="pt-4 mt-4 border-t border-slate-100">
-                        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors hover:text-primary" href="/seller_main/pengaturan">
-                            <span className="material-symbols-outlined">settings</span>
-                            <span>Pengaturan</span>
-                        </Link>
-                    </div>
-                </nav>
-                <div className="p-4 shrink-0">
-                    <div className="rounded-xl bg-primary p-4 text-white">
-                        <p className="text-xs font-medium opacity-80 mb-2">Pusat Edukasi</p>
-                        <p className="text-sm font-bold mb-3">Tingkatkan omset toko kamu!</p>
-                        <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-all cursor-pointer">Pelajari Sekarang</button>
-                    </div>
-                </div>
-            </aside>
-
-            {/* MAIN CONTENT AREA */}
-            <div className="flex-1 flex flex-col ml-64 min-w-0 h-screen" style={{ background: "linear-gradient(180deg, #9288f8 0%, #1a1a2e 400px, #15161d 100%)" }}>
-
-                {/* HEADER */}
-                <header className="h-20 shrink-0 flex items-center justify-between px-8 z-40 bg-transparent border-b border-white/10">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-2xl font-black text-white tracking-tight">Marketing Center</h2>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="relative hidden md:block">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input className="pl-12 pr-4 py-2 rounded-full text-sm focus:ring-2 focus:ring-white/20 bg-white shadow-md focus:outline-none w-64 text-slate-800" placeholder="Cari Promo... (Ctrl + K)" type="text" />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="text-right hidden sm:block text-white">
-                                <p className="text-sm font-bold leading-none">{userData?.shopName || "Memuat..."}</p>
-                                <p className="text-[10px] opacity-80 mt-1">{userData?.isSeller ? "Official Partner" : "Pendaftar Baru"}</p>
-                            </div>
-                            <div className="size-11 rounded-full bg-cover bg-center border-2 border-white/50" style={{ backgroundImage: `url('${userData?.avatar_url || "https://ui-avatars.com/api/?background=random&name=" + (userData?.shopName || "Toko")}')` }}></div>
-                        </div>
-                    </div>
-                </header>
+            </header>
 
                 {/* SCROLLABLE DASHBOARD CONTENT */}
                 <main className="flex-1 overflow-y-auto p-8 pb-12 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 hover:[&::-webkit-scrollbar-thumb]:bg-white/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
@@ -336,7 +279,6 @@ export default function MarketingPage() {
                     </div>
 
                 </main>
-            </div>
-        </div>
+            </>
     );
 }
