@@ -12,7 +12,7 @@ export default function EditProdukPage() {
         const fetchUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                const { data } = await supabase.from("users").select("*").eq("id", session.user.id).single();
                 if (data) setUserData(data);
             }
         };

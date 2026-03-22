@@ -18,10 +18,23 @@ export default function TambahProdukPengiriman() {
 
     useEffect(() => {
         const fetchUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            console.log("Supabase Session:", session);
+            if (sessionError) console.error("Session Error:", sessionError);
+
             if (session?.user) {
-                const { data } = await supabase.from("users").select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at").eq("id", session.user.id).single();
+                const { data, error: userError } = await supabase
+                    .from("users")
+                    .select("*")
+                    .eq("id", session.user.id)
+                    .single();
+                
+                console.log("Fetched User Data:", data);
+                if (userError) console.error("User Fetch Error:", userError);
+                
                 if (data) setUserData(data);
+            } else {
+                console.log("No active session found.");
             }
         };
         fetchUser();
@@ -29,20 +42,26 @@ export default function TambahProdukPengiriman() {
         const saved = sessionStorage.getItem("newProductDraft");
         if (saved) {
             const data = JSON.parse(saved);
-            if (data.weight) setWeight(data.weight);
+            if (data.weight !== undefined) setWeight(String(data.weight));
             if (data.product_status) setProductStatus(data.product_status);
             if (data.size) {
-                setPanjang(data.size.panjang || "");
-                setLebar(data.size.lebar || "");
-                setTinggi(data.size.tinggi || "");
+                setPanjang(data.size.panjang !== undefined ? String(data.size.panjang) : "");
+                setLebar(data.size.lebar !== undefined ? String(data.size.lebar) : "");
+                setTinggi(data.size.tinggi !== undefined ? String(data.size.tinggi) : "");
             }
         }
     }, []);
 
     const handleSubmit = async (e: React.MouseEvent) => {
         e.preventDefault();
-        if (!weight || !userData?.id) {
+        
+        if (weight === "") {
             alert("Harap isi Berat Produk!");
+            return;
+        }
+
+        if (!userData?.id) {
+            alert("Sesi pengguna tidak ditemukan atau data belum dimuat. Silakan muat ulang halaman atau login kembali.");
             return;
         }
 

@@ -22,7 +22,7 @@ export default function Home() {
         // Fetch matched user details from public.users table based on session id
         const { data } = await supabase
           .from("users")
-          .select("id, email, full_name, npm, isSeller, shopName, shopAddress, postalCode, bankName, accountNumber, avatar_url, created_at")
+          .select("*")
           .eq("id", session.user.id)
           .single();
           
