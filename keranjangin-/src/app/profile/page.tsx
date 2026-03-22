@@ -25,6 +25,11 @@ export default function ProfilePage() {
     };
     fetchUser();
   }, [router]);
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   const quickButtons = ["Voucher Belanja", "Voucher Ongkir", "Bonus", "Cek Limit"];
   
@@ -114,6 +119,12 @@ export default function ProfilePage() {
                 {btn}
               </button>
             ))}
+            <button 
+              onClick={handleLogout}
+              className="bg-red-600 text-white text-[9px] md:text-[11px] font-black px-6 py-3 rounded-full uppercase shadow-md hover:bg-red-700 active:scale-95 transition-all border-b-4 border-red-800"
+            >
+              LOGOUT
+            </button>
           </div>
         </section>
 

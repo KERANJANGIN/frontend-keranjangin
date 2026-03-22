@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./seller.css";
+import SellerAuthGuard from "./SellerAuthGuard";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,9 +29,11 @@ export default function SellerLayout({
       />
       
       {/* Layout Konten Seller */}
-      <main>
-        {children}
-      </main>
+      <SellerAuthGuard>
+        <main>
+          {children}
+        </main>
+      </SellerAuthGuard>
     </div>
   );
 }

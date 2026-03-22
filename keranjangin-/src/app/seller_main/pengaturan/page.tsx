@@ -105,6 +105,11 @@ export default function SettingsPage() {
         }
     };
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = "/"; // Use window.location for hard redirect to clear state if needed, or router.push
+    };
+
     return (
         <div className="flex h-screen w-full font-display text-slate-100 bg-[#1e1b4b] overflow-hidden">
 
@@ -296,6 +301,15 @@ export default function SettingsPage() {
                                         <div className="flex flex-col gap-2">
                                             <label className="text-sm font-bold text-slate-700">Alamat Toko</label>
                                             <textarea rows={4} value={shopAddress} onChange={(e) => setShopAddress(e.target.value)} placeholder="Detail alamat toko atau gudang pengiriman..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"></textarea>
+                                        </div>
+                                        <div className="pt-4 mt-4 border-t border-slate-100">
+                                            <button 
+                                                onClick={handleLogout}
+                                                className="px-6 py-2.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold border border-red-100 hover:bg-red-600 hover:text-white transition-all transform active:scale-95 cursor-pointer flex items-center gap-2 w-fit"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">logout</span>
+                                                Logout dari Akun
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
