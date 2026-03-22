@@ -56,6 +56,31 @@ export default function CartPage() {
     }
   };
 
+  // --- FUNGSI UPDATE QUANTITY (TAMBAH / KURANG) ---
+  const updateQuantity = async (id: number, currentQty: number, change: number) => {
+    const newQty = currentQty + change;
+
+    if (newQty <= 0) {
+      // Kalau 0, panggil fungsi hapus yang sudah kamu punya
+      removeFromCart(id);
+    } else {
+      // Kalau masih > 0, update jumlahnya di Supabase
+      const { error } = await supabase
+        .from("cart")
+        .update({ quantity: newQty })
+        .eq("id", id);
+
+      if (!error) {
+        // Update state lokal biar gak perlu reload page
+        setCartItems(cartItems.map(item => 
+          item.id === id ? { ...item, quantity: newQty } : item
+        ));
+      } else {
+        alert("Gagal update jumlah: " + error.message);
+      }
+    }
+  };
+
   // Hitung Total Harga
   const totalPrice = cartItems.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
 
@@ -125,8 +150,18 @@ export default function CartPage() {
                       </div>
                       
                       <div className="flex justify-between items-end mt-6">
-                        <div className="flex items-center gap-4 bg-[#0f0f1b] px-4 py-2 rounded-2xl border border-white/5">
-                           <span className="text-[10px] font-black text-gray-500">QTY: {item.quantity}</span>
+                        <div className="flex items-center gap-4 bg-[#0f0f1b] px-3 py-2 rounded-2xl border border-white/5">
+                          <button onClick={() => updateQuantity(item.id, item.quantity, -1)}
+                            className="w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-500 hover:text-red-500 transition-colors">
+                              —
+                          </button>
+                            <span className="text-[10px] font-black text-white w-4 text-center">
+                              {item.quantity}
+                            </span>
+                          <button onClick={() => updateQuantity(item.id, item.quantity, 1)}
+                            className="w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-500 hover:text-purple-500 transition-colors">
+                              +
+                          </button>
                         </div>
                         <p className="font-black text-lg text-white">Rp {item.price.toLocaleString('id-ID')}</p>
                       </div>
@@ -157,10 +192,11 @@ export default function CartPage() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Total Amount</p>
                 <p className="text-3xl font-black italic uppercase tracking-tighter">Rp {totalPrice.toLocaleString('id-ID')}</p>
               </div>
-
+            <Link href="/checkout">
               <button className="w-full bg-white text-black py-5 rounded-3xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-purple-600 hover:text-white transition-all shadow-xl active:scale-95">
                 Checkout Now 🚀
               </button>
+            </Link>
               
               <p className="text-[8px] text-center text-gray-600 font-bold uppercase tracking-[0.2em] mt-6 leading-relaxed">
                 Secure transaction by <br/> Keranjangin Ecosystem

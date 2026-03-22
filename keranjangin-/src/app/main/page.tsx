@@ -9,38 +9,57 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function MainPage() {
   const [user, setUser] = useState<any>(null);
-  const [isSeller, setIsSeller] = useState(false); // STATE BARU UNTUK STATUS SELLER
+  const [isSeller, setIsSeller] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Default TRUE biar sinkron cek session
+  const [regLoading, setRegLoading] = useState(false); // Loading khusus register
   const router = useRouter();
 
   const [formData, setFormData] = useState({
     npm: "", shopName: "", address: "", postalCode: "", bankName: "", accountNumber: ""
   });
 
+  // --- 1. LOGIKA CEK SESSION & STATUS SELLER ---
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/");
-      } else {
-        setUser(user);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // --- AMBIL STATUS SELLER DARI DATABASE ---
+        if (!session) {
+          router.replace("/"); 
+          return;
+        }
+
+        setUser(session.user);
+        
         const { data: profile } = await supabase
           .from('users')
           .select('isSeller')
-          .eq('id', user.id)
+          .eq('id', session.user.id)
           .single();
 
         if (profile) {
           setIsSeller(profile.isSeller);
         }
+      } catch (err) {
+        console.error("Auth error:", err);
+      } finally {
+        setLoading(false); // MATIKAN LOADING APAPUN HASILNYA
       }
     };
     checkUser();
   }, [router]);
 
+  // --- 2. LOGIKA LOGOUT ---
+  const handleLogout = async () => {
+    if (!confirm("Keluar dari ekosistem Keranjangin?")) return;
+    await supabase.auth.signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "/"; 
+  };
+
+  // --- 3. LOGIKA ADD TO CART ---
   const addToCart = async (product: any) => {
     if (!user) return alert("Silakan login terlebih dahulu");
     try {
@@ -60,13 +79,14 @@ export default function MainPage() {
     }
   };
 
+  // --- 4. LOGIKA REGISTER SELLER ---
   const handleRegisterSeller = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setRegLoading(true);
     const npmPattern = /^(20|21|22|23|24|25|26)\d+$/;
     if (!npmPattern.test(formData.npm)) {
       alert("NPM tidak valid! Harus angkatan 20-26.");
-      setLoading(false);
+      setRegLoading(false);
       return;
     }
 
@@ -84,19 +104,29 @@ export default function MainPage() {
       alert("Gagal: " + error.message);
     } else {
       alert("Selamat! Kamu resmi jadi Seller 🏪");
-      setIsSeller(true); // UPDATE UI SECARA REALTIME
+      setIsSeller(true);
       setIsModalOpen(false);
     }
-    setLoading(false);
+    setRegLoading(false);
   };
 
-  if (!user) return <div className="min-h-screen bg-[#0f0f1b] flex items-center justify-center text-white italic tracking-widest">LOADING ECOSYSTEM...</div>;
+  // --- GUARD UNTUK LOADING STUCK ---
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f0f1b] flex flex-col items-center justify-center text-white italic tracking-widest uppercase">
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        SYNCHRONIZING ECOSYSTEM...
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <main className="min-h-screen bg-[#0f0f1b] text-white font-sans overflow-x-hidden">
       
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-[#1a1a2e]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 bg-[#1a1a2e]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-6">
           <Image src="/LOGO.jpeg" alt="Logo" width={35} height={35} className="rounded-xl shadow-lg shadow-purple-500/20" />
           <div className="hidden lg:flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
@@ -110,14 +140,13 @@ export default function MainPage() {
             <input 
               type="text" 
               placeholder="Cari produk mahasiswa..." 
-              className="w-full bg-[#0f0f1b] border border-white/5 rounded-full py-2.5 px-6 text-xs focus:ring-2 focus:ring-purple-500/50 outline-none transition-all"
+              className="w-full bg-[#0f0f1b] border border-white/5 rounded-full py-2.5 px-6 text-xs focus:ring-2 focus:ring-purple-500/50 outline-none transition-all text-white"
             />
             <span className="absolute right-4 top-2.5 opacity-40">🔍</span>
           </div>
         </div>
 
         <div className="flex items-center gap-5">
-          {/* LOGIKA TOMBOL DINAMIS */}
           {isSeller ? (
             <Link 
               href="/seller_main" 
@@ -134,18 +163,30 @@ export default function MainPage() {
             </button>
           )}
 
-          <Link href="/cart" className="text-xl hover:scale-110 transition-transform relative">
+          <Link href="/cart" className="text-xl hover:scale-110 transition-transform relative px-2">
             🛒
           </Link>
-          <Link href="/profile" className="flex items-center gap-2 group">
-             <div className="w-8 h-8 rounded-full border-2 border-purple-500 overflow-hidden group-hover:scale-105 transition-all shadow-lg shadow-purple-500/30">
-                <Image src="/LOGO.jpeg" alt="User" width={32} height={32} />
-             </div>
-          </Link>
+
+          <div className="h-6 w-px bg-white/10 hidden md:block"></div>
+
+          <div className="flex items-center gap-4">
+            <Link href="/profile" className="flex items-center gap-2 group">
+              <div className="w-8 h-8 rounded-full border-2 border-purple-500 overflow-hidden group-hover:scale-105 transition-all shadow-lg shadow-purple-500/30">
+                  <Image src="/LOGO.jpeg" alt="User" width={32} height={32} />
+              </div>
+            </Link>
+
+            <button 
+              onClick={handleLogout}
+              className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl transition-all duration-300 group active:scale-90"
+              title="Logout"
+            >
+              <span className="material-symbols-outlined text-[20px] block font-bold">logout</span>
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* ... SISA KONTEN (HERO, CATEGORIES, PRODUCTS) TETAP SAMA SEPERTI SEBELUMNYA ... */}
       <div className="max-w-7xl mx-auto px-6 mt-10 space-y-16">
         
         {/* HERO BANNER */}
@@ -186,11 +227,13 @@ export default function MainPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-              <motion.div key={item} whileHover={{ y: -8 }} className="bg-[#1a1a2e] rounded-[35px] border border-white/5 overflow-hidden group shadow-2xl">
-                <div className="aspect-square bg-[#0f0f1b] relative overflow-hidden p-2">
-                   <div className="w-full h-full rounded-[28px] bg-white/5 flex items-center justify-center text-[10px] font-black italic text-gray-700 uppercase">Product Image</div>
-                   <div className="absolute top-4 left-4 bg-purple-600 text-[8px] font-black px-3 py-1.5 rounded-full uppercase italic shadow-lg">Featured</div>
-                </div>
+              <Link href={`/product/${item}`} key={item}>
+                <motion.div whileHover={{ y: -8 }} className="bg-[#1a1a2e] rounded-[35px] border border-white/5 overflow-hidden group shadow-2xl">
+                  <div className="aspect-square bg-[#0f0f1b] relative overflow-hidden p-2">
+                    <div className="w-full h-full rounded-[28px] bg-white/5 flex items-center justify-center text-[10px] font-black italic text-gray-700 uppercase">Product Image</div>
+                    <div className="absolute top-4 left-4 bg-purple-600 text-[8px] font-black px-3 py-1.5 rounded-full uppercase italic shadow-lg">Featured</div>
+                  </div>
+                
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <h3 className="text-sm font-black italic uppercase leading-tight group-hover:text-purple-400 transition-colors">Item Mahasiswa {item}</h3>
@@ -198,11 +241,16 @@ export default function MainPage() {
                   <div className="flex justify-between items-center mt-5">
                     <p className="text-white font-black text-lg">Rp 125k</p>
                     <button 
-                      onClick={() => addToCart({
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      
+                      addToCart({
                         id: item, 
                         name: `Item Mahasiswa ${item}`, 
                         price: 125000
-                      })}
+                      });
+                    }}
                       className="bg-white text-black w-10 h-10 rounded-2xl flex items-center justify-center text-sm hover:bg-purple-600 hover:text-white transition-all shadow-lg active:scale-90"
                     >
                       🛒
@@ -210,6 +258,7 @@ export default function MainPage() {
                   </div>
                 </div>
               </motion.div>
+            </Link>
             ))}
           </div>
         </section>
@@ -244,7 +293,7 @@ export default function MainPage() {
         </footer>
       </div>
 
-      {/* MODAL SELLER (TETAP SAMA) */}
+      {/* MODAL SELLER */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -260,8 +309,8 @@ export default function MainPage() {
                   <input required placeholder="Bank" className="bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none text-white" onChange={(e) => setFormData({...formData, bankName: e.target.value})} />
                 </div>
                 <input required placeholder="Nomor Rekening" className="w-full bg-[#0f0f1b] border border-white/5 p-4 rounded-2xl text-[10px] font-bold uppercase outline-none text-white" onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} />
-                <button disabled={loading} type="submit" className="w-full bg-purple-600 text-white py-5 rounded-[24px] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:bg-purple-500 transition-all mt-4 active:scale-95 disabled:opacity-50">
-                  {loading ? "Menyinkronkan..." : "Konfirmasi & Aktifkan Toko"}
+                <button disabled={regLoading} type="submit" className="w-full bg-purple-600 text-white py-5 rounded-[24px] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:bg-purple-500 transition-all mt-4 active:scale-95 disabled:opacity-50">
+                  {regLoading ? "Menyinkronkan..." : "Konfirmasi & Aktifkan Toko"}
                 </button>
               </form>
             </motion.div>
