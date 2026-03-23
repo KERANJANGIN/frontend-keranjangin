@@ -10,6 +10,7 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("wa"); // Default WhatsApp
+  const [showQRIS, setShowQRIS] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -88,6 +89,20 @@ export default function CheckoutPage() {
               <div className="text-left">
                 <p className="text-xs font-black uppercase">Transfer Bank / E-Wallet</p>
                 <p className="text-[9px] text-gray-500 uppercase">Automatic Verification</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => {
+              setPaymentMethod("qris");
+              setShowQRIS(true); // Langsung munculin gambar QR-nya
+             }}
+              className={`w-full p-6 rounded-[30px] border transition-all flex items-center gap-4 ${paymentMethod === 'qris' ? 'border-purple-500 bg-purple-500/10' : 'border-white/5 bg-[#1a1a2e]'}`}
+            >
+              <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-xl">📸</div>
+              <div className="text-left">
+                <p className="text-xs font-black uppercase">QRIS / All E-Wallet</p>
+                <p className="text-[9px] text-gray-500 uppercase">Scan & Pay Instantly</p>
               </div>
             </button>
 
