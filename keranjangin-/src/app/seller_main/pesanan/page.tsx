@@ -70,7 +70,7 @@ export default function KelolaPesanan() {
             const ordRes = await fetch(`/api/orders/${order.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_status: 'confirmed' })
+                body: JSON.stringify({ order_status: 'action_needed' })
             });
 
             if (ordRes.ok) {
@@ -78,7 +78,7 @@ export default function KelolaPesanan() {
                 setOrders(prev => prev.map(o => 
                     o.id === order.id ? { 
                         ...o, 
-                        order_status: 'confirmed', 
+                        order_status: 'action_needed', 
                         transaction: { ...o.transaction, status: 'paid' } 
                     } : o
                 ));
@@ -98,6 +98,7 @@ export default function KelolaPesanan() {
         if (txStatus === 'waiting_payment') return "Belum Bayar";
         if (ordStatus === 'action_needed' && txStatus === 'paid') return "Perlu Dikirim";
         if (ordStatus === 'confirmed') return "Dikirim";
+        if (ordStatus === 'success') return "Selesai";
         if (ordStatus === 'canceled') return "Dibatalkan";
         // Default mappings based on your actual logic or fallback
         return "Semua";
@@ -293,17 +294,23 @@ export default function KelolaPesanan() {
                                                             onClick={() => handleUpdateStatus(order.id, 'confirmed')}
                                                             className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm">check_circle</span> Konfirmasi
+                                                            <span className="material-symbols-outlined text-sm">local_shipping</span> Atur Kirim
                                                         </button>
                                                     </>
                                                 )}
                                                 {order.order_status === 'confirmed' && (
-                                                    <button className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 cursor-pointer">
-                                                        <span className="material-symbols-outlined text-sm">local_shipping</span> Atur Kirim
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(order.id, 'success')}
+                                                        className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">check_circle</span> Konfirmasi Selesai
                                                     </button>
                                                 )}
                                                 {order.order_status === 'canceled' && (
                                                     <span className="text-red-500 font-bold text-sm italic">Dibatalkan</span>
+                                                )}
+                                                {order.order_status === 'success' && (
+                                                    <span className="text-emerald-500 font-bold text-sm italic">Pesanan Selesai</span>
                                                 )}
                                                 {order.transaction?.status === 'waiting_payment' && (
                                                     <div className="flex items-center gap-4">
