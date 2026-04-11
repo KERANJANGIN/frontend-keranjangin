@@ -77,13 +77,13 @@ export async function POST(request: Request) {
                 { status: 400 }
             );
         }
-        
+
         const ALLOWED_CATEGORIES = [
             'Fashion', 'Elektronik', 'Home & Living', 'Beauty & Personal Care',
             'Baby & Kids', 'Sports & Outdoor', 'Automotive', 'Books & Stationery',
             'Hobbies & Entertainment', 'Food & Beverages'
         ];
-        
+
         const ALLOWED_STATUSES = ['live', 'not_shown', 'action_needed'];
 
         if (category && !ALLOWED_CATEGORIES.includes(category)) {

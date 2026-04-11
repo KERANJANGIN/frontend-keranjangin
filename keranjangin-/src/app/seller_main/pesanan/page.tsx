@@ -55,6 +55,41 @@ export default function KelolaPesanan() {
         }
     };
 
+    const handleConfirmPayment = async (order: any) => {
+        try {
+            // 1. Update Transaction to 'paid'
+            const txRes = await fetch('/api/transactions', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ txId: order.transaction.id, status: 'paid' })
+            });
+
+            if (!txRes.ok) throw new Error("Gagal konfirmasi transaksi");
+
+            // 2. Update Order to 'confirmed'
+            const ordRes = await fetch(`/api/orders/${order.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_status: 'confirmed' })
+            });
+
+            if (ordRes.ok) {
+                // Update local state
+                setOrders(prev => prev.map(o => 
+                    o.id === order.id ? { 
+                        ...o, 
+                        order_status: 'confirmed', 
+                        transaction: { ...o.transaction, status: 'paid' } 
+                    } : o
+                ));
+            } else {
+                throw new Error("Gagal konfirmasi order");
+            }
+        } catch (error: any) {
+            alert(error.message);
+        }
+    };
+
     // Mapping function to categorize orders into tabs
     const getStatusTab = (order: any) => {
         const txStatus = order.transaction?.status;
@@ -271,7 +306,15 @@ export default function KelolaPesanan() {
                                                     <span className="text-red-500 font-bold text-sm italic">Dibatalkan</span>
                                                 )}
                                                 {order.transaction?.status === 'waiting_payment' && (
-                                                    <span className="text-slate-400 font-bold text-sm italic">Menunggu Pembayaran...</span>
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="text-slate-400 font-bold text-sm italic">Menunggu Pembayaran...</span>
+                                                        <button 
+                                                            onClick={() => handleConfirmPayment(order)}
+                                                            className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-sm hover:bg-emerald-600 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                                                        >
+                                                            <span className="material-symbols-outlined text-sm">payments</span> Konfirmasi Pembayaran
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

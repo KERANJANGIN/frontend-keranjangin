@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "My Brand App",
+  title: "Keranjangin",
   description: "Created with Next.js",
 };
 

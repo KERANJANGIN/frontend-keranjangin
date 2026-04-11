@@ -11,19 +11,22 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("wa"); // Default WhatsApp
-  const [showQRIS, setShowQRIS] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
   const [showQRISModal, setShowQRISModal] = useState(false);
 
   useEffect(() => {
     const getCheckoutData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return router.push("/");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return router.push("/");
+      const currentUser = session.user;
+      setUser(currentUser);
 
       const { data } = await supabase
         .from("cart")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", currentUser.id);
 
       if (data) {
         setCartItems(data);
@@ -34,24 +37,73 @@ export default function CheckoutPage() {
     getCheckoutData();
   }, [router]);
 
-  const handleProcessOrder = () => {
-    if (paymentMethod === "qris") {
-    // Kalau pilih QRIS, munculin pop-up card-nya
-    setShowQRISModal(true);
-    } else if (paymentMethod === "wa") {
-      // Generate teks untuk WhatsApp
-      const itemsList = cartItems.map(it => `- ${it.product_name} (${it.quantity}x)`).join("%0A");
-      const message = `Halo Admin Keranjangin! Saya mau pesan:%0A${itemsList}%0ATotal: Rp ${total.toLocaleString('id-ID')}%0AMohon diproses ya!`;
-      window.open(`https://wa.me/628123456789?text=${message}`, "_blank");
-    } else {
-      alert("Fitur Transfer Bank segera hadir!");
+  const handleProcessOrder = async () => {
+    if (!user) return alert("Silakan login terlebih dahulu");
+    setIsProcessing(true);
+
+    try {
+      // 1. Persist Transaction to Backend
+      const txPayload = {
+        action: 'newTx',
+        buyer: user.id,
+        products: cartItems.map(item => ({
+          id: item.product_id,
+          name: item.product_name,
+          price: item.price,
+          quantity: item.quantity,
+          variant: item.variant
+        }))
+      };
+
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(txPayload)
+      });
+
+      if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Gagal membuat transaksi");
+      }
+
+      // 2. Clear Cart in Supabase
+      const { error: clearError } = await supabase
+        .from('cart')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (clearError) console.error("Failed to clear cart:", clearError);
+
+      // 3. UI Flow: WhatsApp or QRIS
+      if (paymentMethod === "qris") {
+        setShowQRISModal(true);
+      } else if (paymentMethod === "wa") {
+        const itemsList = cartItems.map(it => `- ${it.product_name} (${it.quantity}x)`).join("%0A");
+        const message = `Halo Admin Keranjangin! Saya mau pesan:%0A${itemsList}%0ATotal: Rp ${total.toLocaleString('id-ID')}%0AMohon diproses ya!`;
+        window.open(`https://wa.me/6281234567890?text=${message}`, "_blank");
+        router.push("/main");
+      } else {
+        alert("Fitur Transfer Bank segera hadir!");
+      }
+    } catch (error: any) {
+      alert("Terjadi kesalahan: " + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
     <main className="min-h-screen bg-[#0f0f1b] text-white p-6 md:p-20">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-black italic uppercase tracking-tighter mb-10">Finalize <span className="text-purple-500">Order</span></h1>
+        <div className="flex justify-between items-center mb-10">
+          <Link href="/cart" className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-purple-400 transition-all">
+            <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to Cart
+          </Link>
+          <h1 className="text-3xl font-black italic uppercase tracking-tighter">Finalize <span className="text-purple-500">Order</span></h1>
+          <div className="w-20" /> {/* Spacer */}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* KIRI: RINGKASAN */}
@@ -110,10 +162,12 @@ export default function CheckoutPage() {
 
             <button 
               onClick={handleProcessOrder}
-              className="w-full bg-white text-black py-5 rounded-[30px] font-black uppercase text-[11px] tracking-[0.3em] hover:bg-purple-600 hover:text-white transition-all shadow-2xl active:scale-95 mt-4"
+              disabled={isProcessing}
+              className={`w-full bg-white text-black py-5 rounded-[30px] font-black uppercase text-[11px] tracking-[0.3em] hover:bg-purple-600 hover:text-white transition-all shadow-2xl active:scale-95 mt-4 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Confirm & Pay Now
+              {isProcessing ? "Processing..." : "Confirm & Pay Now"}
             </button>
+
           </div>
         </div>
       </div>
@@ -170,6 +224,7 @@ export default function CheckoutPage() {
               // Logic simpan bukti bayar atau lanjut
               setShowQRISModal(false);
               alert("Terima kasih! Jangan lupa kirim bukti bayar ke admin ya.");
+              router.push("/main");
             }}
             className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-purple-600 transition-all active:scale-95 shadow-lg"
           >

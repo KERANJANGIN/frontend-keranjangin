@@ -30,20 +30,34 @@ export default function ProductDetail() {
       }
       setUser(session.user);
 
-      // 2. Simulasi Ambil Data Produk (Nanti ganti ke fetch Supabase)
-      // Misal: const { data } = await supabase.from('products').select('*').eq('id', id).single();
-      setProduct({
-        id: id,
-        name: `Item Mahasiswa ${id}`,
-        price: "125.000",
-        description: "Produk eksklusif hasil karya mahasiswa. Kualitas terjamin dan harga sangat bersahabat untuk kantong anak kos. Grab it fast!",
-        category: "Electronics",
-        tag: "Student Made, Limited"
-      });
-      setLoading(false);
+      // 2. Ambil Data Produk dari API
+      try {
+        const res = await fetch(`/api/products/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.product) {
+            setProduct({
+              ...data.product,
+              // Map API fields to legacy UI expectations if necessary
+              category: data.product.category || "General",
+              tag: "Student Made, Limited" 
+            });
+          } else {
+            router.push("/main");
+          }
+        } else {
+          router.push("/main");
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+        router.push("/main");
+      } finally {
+        setLoading(false);
+      }
     };
     initPage();
   }, [id, router]);
+
 
   const handleLogout = async () => {
     if (!confirm("Keluar dari ekosistem Keranjangin?")) return;
@@ -64,7 +78,7 @@ export default function ProductDetail() {
           user_id: user.id,
           product_id: product.id,
           product_name: product.name,
-          price: 125000, // Kamu bisa ganti jadi parseInt(product.price.replace('.', '')) jika dinamis
+          price: product.price, 
           quantity: quantity,
           variant: selectedVariant,
         },
@@ -157,9 +171,13 @@ export default function ProductDetail() {
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               className="aspect-square bg-[#1a1a2e] border border-white/5 rounded-[40px] flex items-center justify-center relative overflow-hidden group shadow-2xl"
             >
-               <div className="text-gray-700 font-black italic uppercase text-3xl opacity-20 group-hover:opacity-40 transition-opacity">
-                 {product.name}
-               </div>
+               {product.img_path ? (
+                 <img src={product.img_path} alt={product.name} className="w-full h-full object-cover" />
+               ) : (
+                 <div className="text-gray-700 font-black italic uppercase text-3xl opacity-20 group-hover:opacity-40 transition-opacity">
+                   {product.name}
+                 </div>
+               )}
                <div className="absolute top-6 left-6 bg-purple-600 text-[9px] font-black px-4 py-2 rounded-full uppercase italic shadow-lg">Featured Item</div>
             </motion.div>
             
@@ -178,7 +196,7 @@ export default function ProductDetail() {
                 <h1 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter leading-none mt-2">
                   {product.name}
                 </h1>
-                <p className="text-2xl font-black text-white mt-4 italic">Rp {product.price}</p>
+                <p className="text-2xl font-black text-white mt-4 italic">Rp {product.price.toLocaleString('id-ID')}</p>
               </div>
 
               <p className="text-xs text-gray-400 leading-relaxed font-medium max-w-md italic">
@@ -275,7 +293,7 @@ export default function ProductDetail() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Total Estimasi</p>
-              <p className="text-xl font-black italic text-white">Rp {(125000 * quantity).toLocaleString()}</p>
+              <p className="text-xl font-black italic text-white">Rp {(product.price * quantity).toLocaleString()}</p>
             </div>
             <div className="text-right">
               <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest italic">{selectedVariant}</p>

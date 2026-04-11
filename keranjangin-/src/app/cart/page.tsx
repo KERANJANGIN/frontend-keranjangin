@@ -15,27 +15,54 @@ export default function CartPage() {
 
   useEffect(() => {
     const getCartData = async () => {
+      setLoading(true);
       // 1. Cek User yang login
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        router.push("/"); // Balik ke login kalau belum masuk
+        router.push("/");
         return;
       }
       setUser(user);
 
-      // 2. Ambil data dari table 'cart' sesuai user_id
-      const { data, error } = await supabase
+      // 2. Ambil data dari table 'cart'
+      const { data: cartData, error: cartError } = await supabase
         .from("cart")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching cart:", error.message);
-      } else {
-        setCartItems(data || []);
+      if (cartError) {
+        console.error("Error fetching cart:", cartError.message);
+        setLoading(false);
+        return;
       }
+
+      if (cartData && cartData.length > 0) {
+        // 3. Ambil data produk untuk dapat gambarnya
+        const productIds = cartData.map(item => item.product_id);
+        const { data: productsData, error: productsError } = await supabase
+          .from("products")
+          .select("id, img_path")
+          .in("id", productIds);
+
+        if (!productsError && productsData) {
+          // 4. Gabungkan data gambar ke cart items
+          const mergedData = cartData.map(item => {
+            const product = productsData.find(p => String(p.id) === String(item.product_id));
+            return {
+              ...item,
+              img_path: product?.img_path
+            };
+          });
+          setCartItems(mergedData);
+        } else {
+          setCartItems(cartData);
+        }
+      } else {
+        setCartItems([]);
+      }
+      
       setLoading(false);
     };
 
@@ -131,8 +158,12 @@ export default function CartPage() {
                     key={item.id} 
                     className="bg-[#1a1a2e] border border-white/5 p-6 rounded-[35px] flex items-center gap-6 group hover:border-purple-500/30 transition-all"
                   >
-                    <div className="w-24 h-24 bg-[#0f0f1b] rounded-3xl flex items-center justify-center text-[8px] font-black text-gray-800 uppercase italic">
-                      No Image
+                    <div className="w-24 h-24 bg-[#0f0f1b] rounded-3xl flex items-center justify-center relative overflow-hidden">
+                      {item.img_path ? (
+                        <img src={item.img_path} alt={item.product_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[8px] font-black text-gray-800 uppercase italic">No Image</span>
+                      )}
                     </div>
                     
                     <div className="flex-1">

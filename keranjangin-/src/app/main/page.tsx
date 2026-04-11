@@ -19,6 +19,9 @@ export default function MainPage() {
     npm: "", shopName: "", address: "", postalCode: "", bankName: "", accountNumber: ""
   });
 
+  const [products, setProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
   // --- 1. LOGIKA CEK SESSION & STATUS SELLER ---
   useEffect(() => {
     const checkUser = async () => {
@@ -49,6 +52,24 @@ export default function MainPage() {
     };
     checkUser();
   }, [router]);
+
+  // --- 1.2 FETCH PRODUCTS ---
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data.products || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   // --- 2. LOGIKA LOGOUT ---
   const handleLogout = async () => {
@@ -226,42 +247,57 @@ export default function MainPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-              <Link href={`/product/${item}`} key={item}>
-                <motion.div whileHover={{ y: -8 }} className="bg-[#1a1a2e] rounded-[35px] border border-white/5 overflow-hidden group shadow-2xl">
-                  <div className="aspect-square bg-[#0f0f1b] relative overflow-hidden p-2">
-                    <div className="w-full h-full rounded-[28px] bg-white/5 flex items-center justify-center text-[10px] font-black italic text-gray-700 uppercase">Product Image</div>
-                    <div className="absolute top-4 left-4 bg-purple-600 text-[8px] font-black px-3 py-1.5 rounded-full uppercase italic shadow-lg">Featured</div>
+            {productsLoading ? (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-[#1a1a2e] rounded-[35px] aspect-square animate-pulse border border-white/5"></div>
+              ))
+            ) : products.length === 0 ? (
+              <div className="col-span-full py-20 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-600">Belum ada produk tersedia</p>
+              </div>
+            ) : (
+              products.map((item) => (
+                <Link href={`/product/${item.id}`} key={item.id}>
+                  <motion.div whileHover={{ y: -8 }} className="bg-[#1a1a2e] rounded-[35px] border border-white/5 overflow-hidden group shadow-2xl">
+                    <div className="aspect-square bg-[#0f0f1b] relative overflow-hidden p-2">
+                      {item.img_path ? (
+                        <img src={item.img_path} alt={item.name} className="w-full h-full object-cover rounded-[28px]" />
+                      ) : (
+                        <div className="w-full h-full rounded-[28px] bg-white/5 flex items-center justify-center text-[10px] font-black italic text-gray-700 uppercase">No Image</div>
+                      )}
+                      <div className="absolute top-4 left-4 bg-purple-600 text-[8px] font-black px-3 py-1.5 rounded-full uppercase italic shadow-lg">Featured</div>
+                    </div>
+                  
+                  <div className="p-6">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-sm font-black italic uppercase leading-tight group-hover:text-purple-400 transition-colors line-clamp-1">{item.name}</h3>
+                    </div>
+                    <div className="flex justify-between items-center mt-5">
+                      <p className="text-white font-black text-lg">Rp {item.price.toLocaleString()}</p>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        
+                        addToCart({
+                          id: item.id, 
+                          name: item.name, 
+                          price: item.price
+                        });
+                      }}
+                        className="bg-white text-black w-10 h-10 rounded-2xl flex items-center justify-center text-sm hover:bg-purple-600 hover:text-white transition-all shadow-lg active:scale-90"
+                      >
+                        🛒
+                      </button>
+                    </div>
                   </div>
-                
-                <div className="p-6">
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-sm font-black italic uppercase leading-tight group-hover:text-purple-400 transition-colors">Item Mahasiswa {item}</h3>
-                  </div>
-                  <div className="flex justify-between items-center mt-5">
-                    <p className="text-white font-black text-lg">Rp 125k</p>
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      
-                      addToCart({
-                        id: item, 
-                        name: `Item Mahasiswa ${item}`, 
-                        price: 125000
-                      });
-                    }}
-                      className="bg-white text-black w-10 h-10 rounded-2xl flex items-center justify-center text-sm hover:bg-purple-600 hover:text-white transition-all shadow-lg active:scale-90"
-                    >
-                      🛒
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </Link>
-            ))}
+                </motion.div>
+              </Link>
+              ))
+            )}
           </div>
         </section>
+
 
         {/* FOOTER */}
         <footer className="pt-20 pb-12 border-t border-white/5">
